@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { TransformControls, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store';
@@ -22,10 +22,15 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
 
   // Cursor pointer logic
   useEffect(() => {
+    if (activeTool === 'tape') {
+        document.body.style.cursor = 'crosshair';
+        return;
+    }
+
     if (hovered) document.body.style.cursor = 'pointer';
     else document.body.style.cursor = 'auto';
     return () => { document.body.style.cursor = 'auto'; }
-  }, [hovered]);
+  }, [hovered, activeTool]);
 
   const isTransformMode = activeTool === 'select' || activeTool === 'move' || activeTool === 'rotate';
   const transformMode = activeTool === 'rotate' ? 'rotate' : 'translate';
@@ -35,6 +40,16 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
   const h = data.dimensions?.h || 1;
   const d = data.dimensions?.d || 1;
 
+  // Memoize geometry to prevent "undefined reading array" errors in Edges
+  // caused by race conditions when accessing parent geometry via context.
+  // Explicitly passing geometry to Edges is the most robust fix.
+  const selectionGeometry = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d]);
+
+  // Clean up geometry on unmount
+  useEffect(() => {
+    return () => selectionGeometry.dispose();
+  }, [selectionGeometry]);
+
   return (
     <>
         <group
@@ -43,14 +58,23 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
             rotation={new THREE.Euler(...data.rotation)}
             scale={data.scale}
             onClick={(e) => {
+                // If using tape measure, we want the global click handler to take precedence
+                // but we also want the raycaster to hit this object.
+                // Stopping propagation here would prevent measuring on top of objects if logic was global only.
+                // But RenderObject logic is: "Clicking ME selects ME".
+                // So we stop propagation if we are selecting.
+                if (activeTool === 'tape') return; 
+
                 e.stopPropagation();
                 selectObject(data.id, e.shiftKey);
             }}
             onPointerOver={(e) => {
+                if (activeTool === 'tape') return;
                 e.stopPropagation();
                 setHovered(true);
             }}
             onPointerOut={(e) => {
+                if (activeTool === 'tape') return;
                 e.stopPropagation();
                 setHovered(false);
             }}
@@ -58,14 +82,13 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
             <AssetGeometry type={data.type} dimensions={data.dimensions} color={data.color} />
             
             {/* 
-               FIX: Edges must be children of a Mesh with geometry.
-               We use an invisible box that matches the object dimensions to host the Edges.
+               Use explicit geometry for Edges to ensure stability
             */}
-            {(isSelected || hovered) && (
-                <mesh visible={false}>
-                    <boxGeometry args={[w, h, d]} />
+            {(isSelected || (hovered && activeTool !== 'tape')) && (
+                <mesh geometry={selectionGeometry} visible={false}>
                     {isSelected && (
                         <Edges 
+                            geometry={selectionGeometry}
                             scale={1.0} 
                             threshold={15} 
                             color="#06b6d4" 
@@ -74,6 +97,7 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
 
                     {hovered && !isSelected && (
                         <Edges 
+                            geometry={selectionGeometry}
                             scale={1.0} 
                             threshold={15} 
                             color="#ffffff" 
@@ -91,7 +115,6 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                 mode={transformMode}
                 space="local"
                 size={0.8}
-                lineWidth={2}
                 onMouseDown={() => setCameraLocked(true)}
                 onMouseUp={() => {
                     setCameraLocked(false);

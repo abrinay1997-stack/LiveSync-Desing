@@ -26,6 +26,13 @@ export interface Layer {
   color: string;
 }
 
+export interface Measurement {
+    id: string;
+    start: [number, number, number];
+    end: [number, number, number];
+    distance: number;
+}
+
 export const ASSETS: Record<string, Partial<SceneObject> & { description: string }> = {
   // --- LARGE FORMAT ---
   'la-k2': {
@@ -133,6 +140,9 @@ declare module 'react' {
       meshStandardMaterial: any;
       meshBasicMaterial: any;
       primitive: any;
+      // line: any; // Removed to avoid conflict with SVG 'line' type
+      bufferGeometry: any;
+      lineBasicMaterial: any;
       [elemName: string]: any;
     }
   }
@@ -156,6 +166,9 @@ declare global {
       meshStandardMaterial: any;
       meshBasicMaterial: any;
       primitive: any;
+      // line: any; // Removed to avoid conflict with SVG 'line' type
+      bufferGeometry: any;
+      lineBasicMaterial: any;
       [elemName: string]: any;
     }
   }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SceneObject, Layer, ViewMode, ToolType, ASSETS } from './types';
+import { SceneObject, Layer, ViewMode, ToolType, ASSETS, Measurement } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 export type LightingPreset = 'studio' | 'stage' | 'outdoor';
@@ -15,6 +15,7 @@ interface AppState {
   objects: SceneObject[];
   layers: Layer[];
   selectedIds: string[];
+  measurements: Measurement[]; // New: Store measurements
   viewMode: ViewMode;
   activeTool: ToolType;
   snappingEnabled: boolean;
@@ -42,6 +43,13 @@ interface AppState {
   setCameraLocked: (locked: boolean) => void;
   setCameraTarget: (target: [number, number, number]) => void;
   setLightingPreset: (preset: LightingPreset) => void;
+  
+  // Measurement Actions
+  addMeasurement: (measurement: Measurement) => void;
+  removeMeasurement: (id: string) => void;
+
+  // Project Actions
+  loadProject: (data: Partial<AppState>) => void;
   
   // UI Actions
   toggleUI: (element: keyof Omit<UIState, 'activeRightTab'>) => void;
@@ -79,6 +87,7 @@ export const useStore = create<AppState>((set, get) => ({
     { id: 'venue', name: 'Venue Geometry', visible: true, locked: true, color: '#71717a' },
   ],
   selectedIds: [],
+  measurements: [],
   viewMode: 'perspective',
   activeTool: 'select',
   snappingEnabled: true,
@@ -131,6 +140,9 @@ export const useStore = create<AppState>((set, get) => ({
     if (state.activeTool !== 'select' && state.selectedIds.includes(id)) {
         return state;
     }
+    // Prevent selection if measuring
+    if (state.activeTool === 'tape') return state;
+
     const shouldOpenInspector = !state.ui.showInspector; 
     
     return {
@@ -152,6 +164,27 @@ export const useStore = create<AppState>((set, get) => ({
   setCameraLocked: (locked) => set({ isCameraLocked: locked }),
   setCameraTarget: (target) => set({ cameraTarget: target }),
   setLightingPreset: (preset) => set({ lightingPreset: preset }),
+
+  addMeasurement: (measurement) => set((state) => ({
+      measurements: [...state.measurements, measurement]
+  })),
+  
+  removeMeasurement: (id) => set((state) => ({
+      measurements: state.measurements.filter(m => m.id !== id)
+  })),
+
+  loadProject: (data) => set((state) => ({
+      ...state,
+      objects: data.objects || state.objects,
+      layers: data.layers || state.layers,
+      measurements: data.measurements || [],
+      cameraTarget: data.cameraTarget || state.cameraTarget,
+      lightingPreset: data.lightingPreset || state.lightingPreset,
+      // Reset safe defaults
+      selectedIds: [],
+      activeTool: 'select',
+      activePlacementAsset: null
+  })),
 
   toggleUI: (element) => set((state) => ({
       ui: { ...state.ui, [element]: !state.ui[element] }

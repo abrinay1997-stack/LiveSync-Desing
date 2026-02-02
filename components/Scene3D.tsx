@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { RenderObject } from './scene/RenderObject';
 import { GhostObject } from './scene/GhostObject';
 import { ViewportController } from './scene/ViewportController';
+import { TapeMeasure } from './scene/TapeMeasure';
 
 export const Scene3D = () => {
   const objects = useStore(state => state.objects);
@@ -65,6 +66,9 @@ export const Scene3D = () => {
         />
         
         <GhostObject />
+        
+        {/* Measurement Tool Layer */}
+        <TapeMeasure />
 
         {visibleObjects.map(obj => (
           <RenderObject 

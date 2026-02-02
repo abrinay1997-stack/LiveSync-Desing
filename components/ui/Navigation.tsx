@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useStore } from '../../store';
 import { 
     BoxSelect, Download, MousePointer2, Move, RotateCw, Grid, Monitor, Magnet, Search,
-    PanelLeft, PanelBottom, Settings2, Layers, Ruler, Tag, Cable, ChevronDown
+    PanelLeft, PanelBottom, Settings2, Layers, Ruler, Tag, Cable, ChevronDown, Upload
 } from 'lucide-react';
 
 export const TopBar = () => {
     const ui = useStore(state => state.ui);
     const toggleUI = useStore(state => state.toggleUI);
     const setRightTab = useStore(state => state.setRightTab);
+    const loadProject = useStore(state => state.loadProject);
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const toggleInspector = () => {
         if (ui.showInspector && ui.activeRightTab === 'inspector') toggleUI('showInspector');
@@ -19,6 +22,48 @@ export const TopBar = () => {
         if (ui.showInspector && ui.activeRightTab === 'layers') toggleUI('showInspector');
         else setRightTab('layers');
     }
+
+    const handleExport = () => {
+        const state = useStore.getState();
+        const projectData = {
+            version: "1.0",
+            timestamp: new Date().toISOString(),
+            objects: state.objects,
+            layers: state.layers,
+            measurements: state.measurements,
+            cameraTarget: state.cameraTarget,
+            lightingPreset: state.lightingPreset
+        };
+
+        const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `aether-project-${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const json = JSON.parse(event.target?.result as string);
+                loadProject(json);
+            } catch (err) {
+                console.error("Failed to parse project file", err);
+                alert("Invalid project file");
+            }
+        };
+        reader.readAsText(file);
+        // Reset input
+        e.target.value = '';
+    };
 
     return (
         <div className="absolute top-0 left-0 w-full h-14 bg-[#09090b]/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 z-50 select-none shadow-sm pointer-events-auto">
@@ -67,10 +112,30 @@ export const TopBar = () => {
                     <button onClick={toggleLayers} className={`p-1.5 rounded-md transition ${ui.activeRightTab === 'layers' && ui.showInspector ? 'text-aether-accent bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}><Layers size={16} /></button>
                 </div>
 
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-white text-black hover:bg-gray-200 rounded-md text-xs font-semibold transition-all shadow-lg shadow-white/5">
-                    <Download size={14} />
-                    <span>Export</span>
-                </button>
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleImport} 
+                    accept=".json" 
+                    className="hidden" 
+                />
+
+                <div className="flex gap-2">
+                    <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-[#18181b] border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white rounded-md text-xs font-semibold transition-all"
+                    >
+                        <Upload size={14} />
+                        <span>Import</span>
+                    </button>
+                    <button 
+                        onClick={handleExport}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white text-black hover:bg-gray-200 rounded-md text-xs font-semibold transition-all shadow-lg shadow-white/5"
+                    >
+                        <Download size={14} />
+                        <span>Export</span>
+                    </button>
+                </div>
             </div>
         </div>
     )
@@ -83,16 +148,15 @@ const ToolButton = ({ icon: Icon, active, onClick, tooltip, disabled = false }: 
             active 
             ? 'bg-aether-accent text-aether-900 shadow-[0_0_15px_-3px_rgba(6,182,212,0.4)]' 
             : disabled 
-                ? 'text-gray-700 cursor-not-allowed'
+                ? 'text-gray-700 cursor-not-allowed opacity-50'
                 : 'text-gray-500 hover:text-white hover:bg-white/5'
         }`}
+        title={disabled ? "Coming Soon" : tooltip}
     >
         <Icon size={20} strokeWidth={active ? 2.5 : 1.5} />
-        {!disabled && (
-            <span className="absolute left-12 bg-black/90 backdrop-blur text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-white/10">
-                {tooltip}
-            </span>
-        )}
+        <span className="absolute left-12 bg-black/90 backdrop-blur text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-white/10">
+            {disabled ? `${tooltip} (Coming Soon)` : tooltip}
+        </span>
     </button>
 );
 
@@ -115,8 +179,8 @@ export const Toolbar = () => {
                 <ToolButton icon={RotateCw} active={activeTool === 'rotate'} onClick={() => setTool('rotate')} tooltip="Rotate (R)" />
                 <div className="w-8 h-px bg-white/5 my-1 mx-auto"></div>
                 <ToolButton icon={Ruler} active={activeTool === 'tape'} onClick={() => setTool('tape')} tooltip="Tape Measure" />
-                <ToolButton icon={Tag} active={activeTool === 'label'} onClick={() => setTool('label')} tooltip="Add Label" />
-                <ToolButton icon={Cable} active={activeTool === 'cable'} onClick={() => setTool('cable')} tooltip="Patch Cable" />
+                <ToolButton icon={Tag} active={activeTool === 'label'} onClick={() => setTool('label')} tooltip="Add Label" disabled={true} />
+                <ToolButton icon={Cable} active={activeTool === 'cable'} onClick={() => setTool('cable')} tooltip="Patch Cable" disabled={true} />
             </div>
 
             <div className="mt-auto bg-[#09090b]/90 backdrop-blur-md border border-white/5 rounded-2xl p-1 flex flex-col gap-1 shadow-2xl">
