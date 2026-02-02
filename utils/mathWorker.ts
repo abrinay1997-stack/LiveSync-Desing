@@ -1,38 +1,50 @@
 import { ArrayConfig } from '../types';
 
 // We define the worker code as a string to avoid bundler complexity with separate worker files
+// REFACTOR: Removed importScripts('three') to avoid NetworkErrors and CORS issues.
+// Replaced with vanilla JS math implementation.
 const workerCode = `
-    importScripts('https://unpkg.com/three@0.164.1/build/three.min.js');
+    const degToRad = (deg) => deg * (Math.PI / 180);
 
     self.onmessage = function(e) {
         const { id, config, boxHeight } = e.data;
         
-        // RE-IMPLEMENTATION OF LOGIC INSIDE WORKER
-        // We cannot import the function from the main thread easily in this setup
-        
         const { boxCount, splayAngles, siteAngle } = config;
         const items = [];
         
-        let currentPos = new THREE.Vector3(0, 0, 0);
-        let currentAngleRad = THREE.MathUtils.degToRad(siteAngle); 
+        // Start position (0,0,0)
+        let cx = 0, cy = 0, cz = 0;
+        
+        let currentAngleRad = degToRad(siteAngle); 
 
         for (let i = 0; i < boxCount; i++) {
             const splay = splayAngles[i] || 0;
-            const splayRad = THREE.MathUtils.degToRad(splay);
+            const splayRad = degToRad(splay);
             currentAngleRad += splayRad;
 
-            const rotation = new THREE.Euler(currentAngleRad, 0, 0);
+            // Rotation (Euler x, y, z)
+            // In the original logic: new THREE.Euler(currentAngleRad, 0, 0)
+            const rx = currentAngleRad;
+            const ry = 0;
+            const rz = 0;
             
-            // Serialize vectors to arrays for transfer
             items.push({
                 index: i,
-                position: [currentPos.x, currentPos.y, currentPos.z],
-                rotation: [rotation.x, rotation.y, rotation.z]
+                position: [cx, cy, cz],
+                rotation: [rx, ry, rz]
             });
 
+            // Calculate offset for next box
+            // The original logic:
+            // yOffset = -boxHeight * Math.cos(currentAngleRad);
+            // zOffset = boxHeight * Math.sin(currentAngleRad); 
+            // currentPos.add(new THREE.Vector3(0, yOffset, zOffset));
+            
             const yOffset = -boxHeight * Math.cos(currentAngleRad);
             const zOffset = boxHeight * Math.sin(currentAngleRad); 
-            currentPos.add(new THREE.Vector3(0, yOffset, zOffset));
+            
+            cy += yOffset;
+            cz += zOffset;
         }
 
         self.postMessage({ id, items });
