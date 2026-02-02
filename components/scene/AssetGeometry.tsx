@@ -1,4 +1,5 @@
 import React from 'react';
+import { useStore } from '../../store';
 
 interface AssetGeometryProps {
     type: string;
@@ -12,70 +13,91 @@ export const AssetGeometry: React.FC<AssetGeometryProps> = ({ type, dimensions, 
     const h = dimensions?.h || 1;
     const d = dimensions?.d || 1;
 
-    const materialProps = {
-        color: isGhost ? color : color,
-        transparent: isGhost,
-        opacity: isGhost ? 0.5 : 1,
-        roughness: 0.4,
-        metalness: 0.6
-    };
+    // Ghost Material (Simplified, Transparent)
+    if (isGhost) {
+        return (
+            <mesh>
+                <boxGeometry args={[w, h, d]} />
+                <meshBasicMaterial color={color} transparent opacity={0.4} wireframe />
+            </mesh>
+        );
+    }
 
-    // Truss Geometry (Estructural)
+    // Truss Geometry (Aluminum/Structural Look)
     if (type === 'truss') {
         return (
             <group>
+                {/* Main Structure Frame */}
                 <mesh>
                    <boxGeometry args={[w, h, d]} />
-                   <meshStandardMaterial {...materialProps} wireframe={true} color={isGhost ? color : "#ffffff"} />
+                   <meshStandardMaterial 
+                        color="#e4e4e7" 
+                        roughness={0.2} 
+                        metalness={0.8} 
+                        wireframe={true} 
+                    />
                 </mesh>
+                {/* Inner Mass (simulated density) */}
+                <mesh scale={[0.9, 0.9, 0.9]}>
+                   <boxGeometry args={[w, h, d]} />
+                   <meshStandardMaterial 
+                        color={color} 
+                        transparent 
+                        opacity={0.1} 
+                   />
+                </mesh>
+            </group>
+        )
+    }
+
+    // Motor (Industrial Yellow/Black)
+    if (type === 'motor') {
+        return (
+            <group>
                 <mesh>
-                   <boxGeometry args={[w - 0.05, h - 0.05, d - 0.05]} />
-                   <meshStandardMaterial {...materialProps} color={color} />
+                    <boxGeometry args={[w, h, d]} />
+                    <meshStandardMaterial color={color} roughness={0.5} metalness={0.5} />
+                </mesh>
+                <mesh position={[0, -h/2, 0]}>
+                     <cylinderGeometry args={[0.02, 0.02, 2, 8]} />
+                     <meshStandardMaterial color="#333" metalness={0.8} roughness={0.3} />
                 </mesh>
             </group>
         )
     }
     
-    // Speaker/Generic Geometry
+    // Speaker Geometry (PBR Matte Plastic & Metal Grill)
     return (
       <group>
-        {/* Cuerpo Principal */}
+        {/* Enclosure (Matte/Rugged) */}
         <mesh>
             <boxGeometry args={[w, h, d]} />
-            <meshStandardMaterial {...materialProps} />
+            <meshStandardMaterial 
+                color={color} 
+                roughness={0.7} 
+                metalness={0.1} 
+            />
         </mesh>
 
-        {/* UX FIX: Indicador de Dirección (Frontal / Grill) */}
-        {/* Asumimos que Z positivo es el frente para altavoces en este sistema de coordenadas, o Z negativo dependiendo del motor. 
-            Visualmente pondremos la rejilla en una cara para distinguirla. */}
-        {!isGhost && (
-            <>
-                {/* Rejilla Frontal (La cara que "emite" sonido) */}
-                <mesh position={[0, 0, d / 2 + 0.001]}>
-                    <planeGeometry args={[w * 0.9, h * 0.9]} />
-                    <meshStandardMaterial 
-                        color="#111" 
-                        roughness={0.8} 
-                        metalness={0.5}
-                        side={2} // Double side
-                    />
-                    {/* Detalles de rejilla simulados con geometría simple si fuera necesario, 
-                        pero el color oscuro mate contrasta bien con el case */}
-                </mesh>
+        {/* Front Grill (Metallic, textured look via roughness) */}
+        <mesh position={[0, 0, d / 2 + 0.001]}>
+            <planeGeometry args={[w * 0.94, h * 0.94]} />
+            <meshStandardMaterial 
+                color="#18181b" 
+                roughness={0.9} 
+                metalness={0.6}
+            />
+        </mesh>
 
-                {/* Back Plate (Conectores) - para distinguir atrás */}
-                <mesh position={[0, 0, -d / 2 - 0.001]} rotation={[0, Math.PI, 0]}>
-                    <planeGeometry args={[w * 0.6, h * 0.6]} />
-                    <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
-                </mesh>
-                
-                {/* Etiqueta visual de dirección (opcional, una pequeña muesca amarilla arriba) */}
-                 <mesh position={[0, h/2 + 0.001, d/2 - 0.05]} rotation={[-Math.PI/2, 0, 0]}>
-                    <planeGeometry args={[0.05, 0.05]} />
-                    <meshBasicMaterial color="#facc15" />
-                </mesh>
-            </>
-        )}
+        {/* Side Handles / Rigging Hardware Hints */}
+        <mesh position={[w/2 + 0.001, 0, 0]} rotation={[0, Math.PI/2, 0]}>
+            <planeGeometry args={[d * 0.5, h * 0.4]} />
+            <meshStandardMaterial color="#333" metalness={0.9} roughness={0.4} />
+        </mesh>
+        <mesh position={[-w/2 - 0.001, 0, 0]} rotation={[0, -Math.PI/2, 0]}>
+            <planeGeometry args={[d * 0.5, h * 0.4]} />
+            <meshStandardMaterial color="#333" metalness={0.9} roughness={0.4} />
+        </mesh>
       </group>
     );
 };

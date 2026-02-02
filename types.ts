@@ -1,4 +1,5 @@
 import { Vector3, Euler } from 'three';
+import React from 'react';
 
 export type ViewMode = 'perspective' | 'top' | 'side';
 export type ToolType = 'select' | 'move' | 'rotate' | 'tape' | 'label' | 'cable';
@@ -114,9 +115,47 @@ export const ASSETS: Record<string, Partial<SceneObject> & { description: string
   }
 };
 
+// Augment React's JSX namespace for newer React versions
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      ambientLight: any;
+      pointLight: any;
+      directionalLight: any;
+      spotLight: any;
+      mesh: any;
+      group: any;
+      position: any;
+      boxGeometry: any;
+      planeGeometry: any;
+      sphereGeometry: any;
+      cylinderGeometry: any;
+      meshStandardMaterial: any;
+      meshBasicMaterial: any;
+      primitive: any;
+      [elemName: string]: any;
+    }
+  }
+}
+
+// Augment global JSX namespace for backward compatibility
 declare global {
   namespace JSX {
     interface IntrinsicElements {
+      ambientLight: any;
+      pointLight: any;
+      directionalLight: any;
+      spotLight: any;
+      mesh: any;
+      group: any;
+      position: any;
+      boxGeometry: any;
+      planeGeometry: any;
+      sphereGeometry: any;
+      cylinderGeometry: any;
+      meshStandardMaterial: any;
+      meshBasicMaterial: any;
+      primitive: any;
       [elemName: string]: any;
     }
   }

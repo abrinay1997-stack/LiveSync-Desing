@@ -1,5 +1,5 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react';
-import { TransformControls } from '@react-three/drei';
+import React, { useRef, useState, useEffect } from 'react';
+import { TransformControls, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store';
 import { SceneObject } from '../../types';
@@ -19,26 +19,6 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
   
   const objectRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
-  
-  // Material para selección
-  const selectionMaterial = useMemo(() => new THREE.MeshBasicMaterial({
-      color: '#06b6d4',
-      wireframe: true,
-      depthTest: false,
-      depthWrite: false,
-      transparent: true,
-      opacity: 0.5
-  }), []);
-
-  // Material para hover (más sutil)
-  const hoverMaterial = useMemo(() => new THREE.MeshBasicMaterial({
-      color: '#ffffff',
-      wireframe: true,
-      depthTest: false,
-      depthWrite: false,
-      transparent: true,
-      opacity: 0.2
-  }), []);
 
   // Cursor pointer logic
   useEffect(() => {
@@ -47,9 +27,13 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
     return () => { document.body.style.cursor = 'auto'; }
   }, [hovered]);
 
-  // UX Decision: Permitir mover si la herramienta es 'move' O 'select' (default behavior)
   const isTransformMode = activeTool === 'select' || activeTool === 'move' || activeTool === 'rotate';
   const transformMode = activeTool === 'rotate' ? 'rotate' : 'translate';
+
+  // Dimensions for selection box
+  const w = data.dimensions?.w || 1;
+  const h = data.dimensions?.h || 1;
+  const d = data.dimensions?.d || 1;
 
   return (
     <>
@@ -73,41 +57,50 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
         >
             <AssetGeometry type={data.type} dimensions={data.dimensions} color={data.color} />
             
-            {/* Visual Feedback: Selection Box */}
-            {isSelected && (
-                 <mesh>
-                    <boxGeometry args={[(data.dimensions?.w || 1) + 0.05, (data.dimensions?.h || 1) + 0.05, (data.dimensions?.d || 1) + 0.05]} />
-                    <primitive object={selectionMaterial} attach="material" />
-                 </mesh>
-            )}
+            {/* 
+               FIX: Edges must be children of a Mesh with geometry.
+               We use an invisible box that matches the object dimensions to host the Edges.
+            */}
+            {(isSelected || hovered) && (
+                <mesh visible={false}>
+                    <boxGeometry args={[w, h, d]} />
+                    {isSelected && (
+                        <Edges 
+                            scale={1.0} 
+                            threshold={15} 
+                            color="#06b6d4" 
+                        />
+                    )}
 
-            {/* Visual Feedback: Hover Box (Only if not selected) */}
-            {hovered && !isSelected && (
-                 <mesh>
-                    <boxGeometry args={[(data.dimensions?.w || 1) + 0.02, (data.dimensions?.h || 1) + 0.02, (data.dimensions?.d || 1) + 0.02]} />
-                    <primitive object={hoverMaterial} attach="material" />
-                 </mesh>
+                    {hovered && !isSelected && (
+                        <Edges 
+                            scale={1.0} 
+                            threshold={15} 
+                            color="#ffffff" 
+                            opacity={0.3}
+                            transparent
+                        />
+                    )}
+                </mesh>
             )}
         </group>
 
-        {/* GIZMO: Ahora se muestra siempre que está seleccionado y en una herramienta compatible */}
         {showGizmo && isTransformMode && objectRef.current && (
             <TransformControls
                 object={objectRef.current}
                 mode={transformMode}
                 space="local"
                 size={0.8}
+                lineWidth={2}
                 onMouseDown={() => setCameraLocked(true)}
                 onMouseUp={() => {
                     setCameraLocked(false);
                     if (objectRef.current) {
                         const { position, rotation } = objectRef.current;
                         
-                        // UX FIX: Floor Clamping (Gravedad)
                         const minHeight = (data.dimensions?.h || 0) / 2;
                         const clampedY = Math.max(position.y, minHeight);
 
-                        // Snap visual correction
                         objectRef.current.position.y = clampedY;
 
                         updateObject(data.id, {

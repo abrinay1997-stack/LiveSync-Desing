@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { SceneObject, Layer, ViewMode, ToolType, ASSETS } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+export type LightingPreset = 'studio' | 'stage' | 'outdoor';
+
 interface UIState {
     showToolbar: boolean;
     showLibrary: boolean;
@@ -19,8 +21,9 @@ interface AppState {
   activePlacementAsset: string | null;
   isCameraLocked: boolean;
   
-  // Camera State
+  // Scene Settings
   cameraTarget: [number, number, number];
+  lightingPreset: LightingPreset;
   
   // UI State
   ui: UIState;
@@ -38,6 +41,7 @@ interface AppState {
   toggleSnapping: () => void;
   setCameraLocked: (locked: boolean) => void;
   setCameraTarget: (target: [number, number, number]) => void;
+  setLightingPreset: (preset: LightingPreset) => void;
   
   // UI Actions
   toggleUI: (element: keyof Omit<UIState, 'activeRightTab'>) => void;
@@ -81,6 +85,7 @@ export const useStore = create<AppState>((set, get) => ({
   activePlacementAsset: null,
   isCameraLocked: false,
   cameraTarget: [0, 0, 0],
+  lightingPreset: 'studio',
 
   ui: {
       showToolbar: true,
@@ -146,6 +151,7 @@ export const useStore = create<AppState>((set, get) => ({
   toggleSnapping: () => set((state) => ({ snappingEnabled: !state.snappingEnabled })),
   setCameraLocked: (locked) => set({ isCameraLocked: locked }),
   setCameraTarget: (target) => set({ cameraTarget: target }),
+  setLightingPreset: (preset) => set({ lightingPreset: preset }),
 
   toggleUI: (element) => set((state) => ({
       ui: { ...state.ui, [element]: !state.ui[element] }
