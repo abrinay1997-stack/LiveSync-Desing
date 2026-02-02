@@ -1,7 +1,8 @@
 import React from 'react';
 import { useStore } from '../store';
 import { KeyboardManager } from './managers/KeyboardManager';
-import { TopBar, Toolbar } from './ui/Navigation';
+import { TopBar } from './ui/TopBar';
+import { Toolbar } from './ui/Toolbar';
 import { RightSidebar } from './layout/RightSidebar';
 import { LibraryPanel } from './panels/LibraryPanel';
 

@@ -29,7 +29,7 @@ const TapeLine = ({ start, end, color, dashed }: { start: THREE.Vector3, end: TH
     }, [geometry, dashed]);
 
     return (
-        <line ref={lineRef} geometry={geometry}>
+        <line ref={lineRef as any} geometry={geometry}>
             {dashed ? (
                 <lineDashedMaterial color={color} dashSize={0.2} gapSize={0.2} />
             ) : (
