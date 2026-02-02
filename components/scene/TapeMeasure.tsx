@@ -131,7 +131,7 @@ export const TapeMeasure = () => {
                          <mesh position={end}><sphereGeometry args={[0.03]} /><meshBasicMaterial color="#f59e0b" /></mesh>
                          
                          <Html position={mid}>
-                            <div className="bg-black/80 backdrop-blur border border-amber-500/50 rounded px-2 py-1 flex items-center gap-2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg">
+                            <div className="bg-black/80 backdrop-blur border border-amber-500/50 rounded px-2 py-1 flex items-center gap-2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg cursor-default pointer-events-auto">
                                 <span className="text-amber-500 text-xs font-mono font-bold whitespace-nowrap">{m.distance}m</span>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); removeMeasurement(m.id); }}

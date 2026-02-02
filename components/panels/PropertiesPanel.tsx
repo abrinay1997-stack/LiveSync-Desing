@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useStore, LightingPreset } from '../../store';
+import { ASSETS } from '../../types';
 import { NumericInput } from '../ui/NumericInput';
 import { BoxSelect, Plus, Trash2, ChevronDown, ChevronRight, Sun, Globe, Zap } from 'lucide-react';
 
-const Section = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
+const Section = ({ title, children, defaultOpen = true }: { title: string, children?: React.ReactNode, defaultOpen?: boolean }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     return (
         <div className="border-b border-white/5 last:border-0">
@@ -29,6 +30,11 @@ export const PropertiesPanel = () => {
     
     const selection = objects.filter(o => selectedIds.includes(o.id));
     const singleSelection = selection.length === 1 ? selection[0] : null;
+
+    // Helper to get technical data from the ASSET definition
+    const getTechSpec = (obj: typeof selection[0]) => {
+        return ASSETS[obj.model || ''];
+    }
 
     // --- STATE: NO SELECTION (GLOBAL SETTINGS) ---
     if (selection.length === 0) return (
@@ -69,8 +75,10 @@ export const PropertiesPanel = () => {
                         <span className="text-xl font-mono text-white">{objects.length}</span>
                     </div>
                     <div className="bg-black/20 p-2 rounded">
-                        <span className="text-[10px] text-gray-500 block">System Load</span>
-                        <span className="text-xl font-mono text-green-500">Low</span>
+                        <span className="text-[10px] text-gray-500 block">Total Weight</span>
+                        <span className="text-xl font-mono text-amber-500">
+                            {objects.reduce((acc, obj) => acc + (ASSETS[obj.model]?.weight || 0), 0)} kg
+                        </span>
                     </div>
                 </div>
             </Section>
@@ -78,6 +86,9 @@ export const PropertiesPanel = () => {
     );
 
     // --- STATE: SELECTION ACTIVE ---
+    const specs = singleSelection ? getTechSpec(singleSelection) : null;
+    const totalSelectedWeight = selection.reduce((acc, obj) => acc + (ASSETS[obj.model]?.weight || 0), 0);
+
     return (
         <div className="p-4 space-y-2 animate-in slide-in-from-right-4 fade-in duration-200">
             <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-2">
@@ -88,11 +99,12 @@ export const PropertiesPanel = () => {
                     <div className="flex flex-col">
                         <input 
                             type="text" 
-                            value={singleSelection?.name || 'Multiple'}
+                            value={singleSelection?.name || 'Multiple Objects'}
                             onChange={(e) => singleSelection && updateObject(singleSelection.id, { name: e.target.value })}
+                            disabled={selection.length > 1}
                             className="bg-transparent text-sm font-bold text-white focus:outline-none focus:border-b focus:border-aether-accent w-32"
                         />
-                        <span className="text-[10px] text-aether-500 uppercase font-mono">{singleSelection?.type || 'Mixed'} Group</span>
+                        <span className="text-[10px] text-aether-500 uppercase font-mono">{selection.length > 1 ? `${selection.length} Items` : singleSelection?.type}</span>
                     </div>
                 </div>
             </div>
@@ -127,41 +139,40 @@ export const PropertiesPanel = () => {
                     </Section>
 
                     {/* CONTEXTUAL SECTION: AUDIO */}
-                    {(singleSelection.type === 'speaker' || singleSelection.type === 'sub') && (
-                        <Section title="Audio Configuration">
+                    {(singleSelection.type === 'speaker' || singleSelection.type === 'sub') && specs && (
+                        <Section title="Acoustic Data">
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-400">Circuit ID</span>
-                                    <span className="text-xs font-mono text-aether-accent">LA-101</span>
+                                    <span className="text-xs text-gray-400">Max SPL</span>
+                                    <span className="text-xs font-mono text-aether-accent">{specs.maxSPL ? `${specs.maxSPL} dB` : 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-400">Processing</span>
-                                    <span className="text-xs font-mono text-white">FLAT</span>
+                                    <span className="text-xs text-gray-400">Dispersion (HxV)</span>
+                                    <span className="text-xs font-mono text-white">{specs.dispersion ? `${specs.dispersion.h}° x ${specs.dispersion.v}°` : 'Omni'}</span>
                                 </div>
-                                <div className="h-px bg-white/5 my-2"></div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button className="py-1 bg-white/5 text-[10px] hover:bg-white/10 rounded">Mute</button>
-                                    <button className="py-1 bg-white/5 text-[10px] hover:bg-white/10 rounded">Solo</button>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-400">Unit Weight</span>
+                                    <span className="text-xs font-mono text-gray-300">{specs.weight} kg</span>
                                 </div>
                             </div>
                         </Section>
                     )}
 
                     {/* CONTEXTUAL SECTION: RIGGING */}
-                    {(singleSelection.type === 'truss' || singleSelection.type === 'motor') && (
-                        <Section title="Rigging Data">
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-400">Total Load</span>
-                                    <span className="text-xs font-mono text-amber-500">450 kg</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-400">Safety Factor</span>
-                                    <span className="text-xs font-mono text-green-500">5:1</span>
-                                </div>
+                    <Section title="Rigging Calculator">
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-gray-400">Selected Weight</span>
+                                <span className="text-xs font-mono text-amber-500">{totalSelectedWeight} kg</span>
                             </div>
-                        </Section>
-                    )}
+                            {(singleSelection.type === 'motor' || singleSelection.type === 'truss') && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-400">Est. Safety Factor</span>
+                                    <span className="text-xs font-mono text-green-500">{(1000 / (totalSelectedWeight || 1)).toFixed(1)}:1 (1T)</span>
+                                </div>
+                            )}
+                        </div>
+                    </Section>
 
                     <div className="pt-4 mt-2">
                          <div className="grid grid-cols-2 gap-2">

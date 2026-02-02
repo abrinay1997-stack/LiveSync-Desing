@@ -61,6 +61,7 @@ export const useStore = create<AppState>((set, get) => ({
     {
       id: '1',
       name: 'Main Truss Left',
+      model: 'truss-30',
       type: 'truss',
       position: [-5, 6, 0],
       rotation: [0, 0, 0],
@@ -72,6 +73,7 @@ export const useStore = create<AppState>((set, get) => ({
     {
       id: '2',
       name: 'K2 Array L',
+      model: 'la-k2',
       type: 'speaker',
       position: [-5, 5, 0],
       rotation: [0, 0, 0],
@@ -110,6 +112,7 @@ export const useStore = create<AppState>((set, get) => ({
     const newObj: SceneObject = {
       id: uuidv4(),
       name: `${template.name} ${state.objects.filter(o => o.type === template.type).length + 1}`,
+      model: assetKey, // Critical for looking up tech specs later
       type: template.type!,
       position: position,
       rotation: [0, 0, 0],
