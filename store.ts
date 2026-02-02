@@ -7,15 +7,22 @@ export type LightingPreset = 'studio' | 'stage' | 'outdoor';
 interface UIState {
     showToolbar: boolean;
     showLibrary: boolean;
-    showInspector: boolean; // Right sidebar
+    showInspector: boolean;
     activeRightTab: 'inspector' | 'layers';
+}
+
+// Data that needs to be tracked in history
+interface ProjectData {
+    objects: SceneObject[];
+    measurements: Measurement[];
+    cameraTarget: [number, number, number];
 }
 
 interface AppState {
   objects: SceneObject[];
   layers: Layer[];
   selectedIds: string[];
-  measurements: Measurement[]; // New: Store measurements
+  measurements: Measurement[];
   viewMode: ViewMode;
   activeTool: ToolType;
   snappingEnabled: boolean;
@@ -29,9 +36,15 @@ interface AppState {
   // UI State
   ui: UIState;
 
+  // History State
+  history: {
+      past: ProjectData[];
+      future: ProjectData[];
+  };
+
   // Actions
   addObject: (assetKey: string, position: [number, number, number]) => void;
-  cloneObject: (id: string) => void; // New Action
+  cloneObject: (id: string) => void;
   updateObject: (id: string, updates: Partial<SceneObject>) => void;
   removeObject: (id: string) => void;
   selectObject: (id: string, multi: boolean) => void;
@@ -55,7 +68,19 @@ interface AppState {
   // UI Actions
   toggleUI: (element: keyof Omit<UIState, 'activeRightTab'>) => void;
   setRightTab: (tab: 'inspector' | 'layers') => void;
+
+  // History Actions
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
 }
+
+// Helper to snapshot current critical state
+const createSnapshot = (state: AppState): ProjectData => ({
+    objects: state.objects,
+    measurements: state.measurements,
+    cameraTarget: state.cameraTarget
+});
 
 export const useStore = create<AppState>((set, get) => ({
   objects: [
@@ -82,7 +107,6 @@ export const useStore = create<AppState>((set, get) => ({
       layerId: 'audio',
       color: '#27272a',
       dimensions: { w: 1.3, h: 0.35, d: 0.4 },
-      // Example of a pre-configured array
       arrayConfig: {
           enabled: true,
           boxCount: 6,
@@ -115,85 +139,174 @@ export const useStore = create<AppState>((set, get) => ({
       activeRightTab: 'inspector'
   },
 
-  addObject: (assetKey, position) => set((state) => {
-    const template = ASSETS[assetKey];
-    if (!template) return state;
+  history: {
+      past: [],
+      future: []
+  },
 
-    // Default Array Configuration for Speakers
-    let arrayConfig = undefined;
-    if (template.type === 'speaker' || template.type === 'sub') {
-        // Smart Default: If it's a Line Array element, create a 6-box hang by default
-        const isLineArray = template.isLineArray;
-        const defaultCount = isLineArray ? 6 : 1;
-        
-        arrayConfig = {
-            enabled: true,
-            boxCount: defaultCount,
-            siteAngle: 0,
-            splayAngles: Array(defaultCount).fill(0),
-            showThrowLines: isLineArray || false,
-            throwDistance: 20
+  // --- HISTORY ACTIONS ---
+  pushHistory: () => set((state) => {
+      const snapshot = createSnapshot(state);
+      // Limit history to 50 steps to save memory
+      const newPast = [...state.history.past, snapshot].slice(-50);
+      return {
+          history: {
+              past: newPast,
+              future: [] // Clear future on new action
+          }
+      };
+  }),
+
+  undo: () => set((state) => {
+      if (state.history.past.length === 0) return state;
+
+      const previous = state.history.past[state.history.past.length - 1];
+      const newPast = state.history.past.slice(0, -1);
+      
+      const currentSnapshot = createSnapshot(state);
+
+      return {
+          ...state,
+          objects: previous.objects,
+          measurements: previous.measurements,
+          cameraTarget: previous.cameraTarget,
+          history: {
+              past: newPast,
+              future: [currentSnapshot, ...state.history.future]
+          },
+          // Clear selection on undo to avoid ghost IDs
+          selectedIds: [] 
+      };
+  }),
+
+  redo: () => set((state) => {
+      if (state.history.future.length === 0) return state;
+
+      const next = state.history.future[0];
+      const newFuture = state.history.future.slice(1);
+      
+      const currentSnapshot = createSnapshot(state);
+
+      return {
+          ...state,
+          objects: next.objects,
+          measurements: next.measurements,
+          cameraTarget: next.cameraTarget,
+          history: {
+              past: [...state.history.past, currentSnapshot],
+              future: newFuture
+          },
+          selectedIds: []
+      };
+  }),
+
+  // --- OBJECT ACTIONS (Wrapped with pushHistory) ---
+
+  addObject: (assetKey, position) => {
+      get().pushHistory(); // SNAPSHOT BEFORE CHANGE
+      set((state) => {
+        const template = ASSETS[assetKey];
+        if (!template) return state;
+
+        let arrayConfig = undefined;
+        if (template.type === 'speaker' || template.type === 'sub') {
+            const isLineArray = template.isLineArray;
+            const defaultCount = isLineArray ? 6 : 1;
+            
+            arrayConfig = {
+                enabled: true,
+                boxCount: defaultCount,
+                siteAngle: 0,
+                splayAngles: Array(defaultCount).fill(0),
+                showThrowLines: isLineArray || false,
+                throwDistance: 20
+            };
+        }
+
+        const newObj: SceneObject = {
+          id: uuidv4(),
+          name: `${template.name} ${state.objects.filter(o => o.type === template.type).length + 1}`,
+          model: assetKey, 
+          type: template.type!,
+          position: position,
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+          layerId: template.type === 'truss' || template.type === 'motor' ? 'rigging' : 'audio',
+          color: template.color || '#fff',
+          dimensions: template.dimensions,
+          arrayConfig: arrayConfig
         };
-    }
+        
+        return { 
+            objects: [...state.objects, newObj], 
+            selectedIds: [newObj.id],
+            activePlacementAsset: null,
+            activeTool: 'select'
+        };
+    })
+  },
 
-    const newObj: SceneObject = {
-      id: uuidv4(),
-      name: `${template.name} ${state.objects.filter(o => o.type === template.type).length + 1}`,
-      model: assetKey, 
-      type: template.type!,
-      position: position,
-      rotation: [0, 0, 0],
-      scale: [1, 1, 1],
-      layerId: template.type === 'truss' || template.type === 'motor' ? 'rigging' : 'audio',
-      color: template.color || '#fff',
-      dimensions: template.dimensions,
-      arrayConfig: arrayConfig
-    };
-    
-    return { 
-        objects: [...state.objects, newObj], 
-        selectedIds: [newObj.id],
-        activePlacementAsset: null,
-        activeTool: 'select'
-    };
-  }),
+  cloneObject: (id) => {
+    get().pushHistory();
+    set((state) => {
+        const original = state.objects.find(o => o.id === id);
+        if (!original) return state;
 
-  cloneObject: (id) => set((state) => {
-    const original = state.objects.find(o => o.id === id);
-    if (!original) return state;
+        const arrayConfigClone = original.arrayConfig ? {
+            ...original.arrayConfig,
+            splayAngles: [...original.arrayConfig.splayAngles]
+        } : undefined;
 
-    // Deep copy the arrayConfig if it exists
-    const arrayConfigClone = original.arrayConfig ? {
-        ...original.arrayConfig,
-        splayAngles: [...original.arrayConfig.splayAngles]
-    } : undefined;
+        const newObj: SceneObject = {
+            ...original,
+            id: uuidv4(),
+            name: `${original.name} (Copy)`,
+            position: [original.position[0] + 2, original.position[1], original.position[2]],
+            arrayConfig: arrayConfigClone
+        };
 
-    const newObj: SceneObject = {
-        ...original,
-        id: uuidv4(),
-        name: `${original.name} (Copy)`,
-        // Offset position slightly so it's visible
-        position: [original.position[0] + 2, original.position[1], original.position[2]],
-        arrayConfig: arrayConfigClone
-    };
+        return {
+            objects: [...state.objects, newObj],
+            selectedIds: [newObj.id]
+        };
+    })
+  },
 
-    return {
-        objects: [...state.objects, newObj],
-        selectedIds: [newObj.id]
-    };
-  }),
+  updateObject: (id, updates) => {
+      // NOTE: For dragging, this might create too many history steps. 
+      // In a real app, we'd use 'onDragStart' and 'onDragEnd' to snapshot.
+      // For now, we assume this is called on "End" of interactions mostly.
+      // Optimization: We could check if we are 'dragging' via a transient state.
+      // For property panel updates, this is fine.
+      set((state) => {
+          // If the update is purely transient (like dragging preview), we might skip history,
+          // but detecting that here is complex without more flags.
+          // We will rely on the UI components to call updateObject only when committed (e.g. onBlur or onMouseUp).
+          return {
+             objects: state.objects.map(o => o.id === id ? { ...o, ...updates } : o)
+          }
+      })
+  },
 
-  updateObject: (id, updates) => set((state) => ({
-    objects: state.objects.map(o => o.id === id ? { ...o, ...updates } : o)
-  })),
+  // Special action for committed updates (to use with onMouseUp/onBlur)
+  // This explicitly creates a history entry
+  updateObjectFinal: (id, updates) => {
+      get().pushHistory();
+      set((state) => ({
+         objects: state.objects.map(o => o.id === id ? { ...o, ...updates } : o)
+      }));
+  },
 
-  removeObject: (id) => set((state) => ({
-    objects: state.objects.filter(o => o.id !== id),
-    selectedIds: state.selectedIds.filter(sid => sid !== id)
-  })),
+  removeObject: (id) => {
+      get().pushHistory();
+      set((state) => ({
+        objects: state.objects.filter(o => o.id !== id),
+        selectedIds: state.selectedIds.filter(sid => sid !== id)
+      }))
+  },
 
   selectObject: (id, multi) => set((state) => {
-    if (state.activeTool !== 'select' && state.selectedIds.includes(id)) {
+    if (state.activeTool !== 'select' && state.activeTool !== 'move' && state.activeTool !== 'rotate' && state.selectedIds.includes(id)) {
         return state;
     }
     // Prevent selection if measuring
@@ -221,13 +334,19 @@ export const useStore = create<AppState>((set, get) => ({
   setCameraTarget: (target) => set({ cameraTarget: target }),
   setLightingPreset: (preset) => set({ lightingPreset: preset }),
 
-  addMeasurement: (measurement) => set((state) => ({
-      measurements: [...state.measurements, measurement]
-  })),
+  addMeasurement: (measurement) => {
+      get().pushHistory();
+      set((state) => ({
+          measurements: [...state.measurements, measurement]
+      }))
+  },
   
-  removeMeasurement: (id) => set((state) => ({
-      measurements: state.measurements.filter(m => m.id !== id)
-  })),
+  removeMeasurement: (id) => {
+      get().pushHistory();
+      set((state) => ({
+          measurements: state.measurements.filter(m => m.id !== id)
+      }))
+  },
 
   loadProject: (data) => set((state) => ({
       ...state,
@@ -236,7 +355,7 @@ export const useStore = create<AppState>((set, get) => ({
       measurements: data.measurements || [],
       cameraTarget: data.cameraTarget || state.cameraTarget,
       lightingPreset: data.lightingPreset || state.lightingPreset,
-      // Reset safe defaults
+      history: { past: [], future: [] }, // Reset history on load
       selectedIds: [],
       activeTool: 'select',
       activePlacementAsset: null

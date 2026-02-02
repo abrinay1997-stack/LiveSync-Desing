@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../../store';
+import * as THREE from 'three';
 
 interface AssetGeometryProps {
     type: string;
@@ -21,6 +22,45 @@ export const AssetGeometry: React.FC<AssetGeometryProps> = ({ type, dimensions, 
                 <meshBasicMaterial color={color} transparent opacity={0.4} wireframe />
             </mesh>
         );
+    }
+
+    // --- AUDIENCE ZONE (NEW) ---
+    // Represents a listening plane. Needs to look distinct from stage.
+    if (type === 'audience') {
+        return (
+            <group>
+                {/* The "Floor" of the zone */}
+                <mesh position={[0, h/2, 0]}>
+                    <boxGeometry args={[w, h, d]} />
+                    <meshStandardMaterial 
+                        color={color} 
+                        transparent 
+                        opacity={0.15} 
+                        side={THREE.DoubleSide}
+                        roughness={0.8}
+                    />
+                </mesh>
+                
+                {/* Border / Frame */}
+                <mesh position={[0, h/2, 0]}>
+                    <boxGeometry args={[w, h, d]} />
+                    <meshBasicMaterial color={color} wireframe />
+                </mesh>
+
+                {/* Direction Indicator (Front Edge) */}
+                <mesh position={[0, h/2 + 0.05, d/2]}>
+                    <boxGeometry args={[w, 0.05, 0.05]} />
+                    <meshBasicMaterial color={color} />
+                </mesh>
+
+                {/* Grid Pattern on top surface for scale reference */}
+                <group position={[0, h + 0.01, 0]} rotation={[0, 0, 0]}>
+                    {/* We can't easily use GridHelper for variable size without scaling, 
+                        so we use a texture-like effect or just simple lines if needed. 
+                        For now, the wireframe box is sufficient for v2.1 */}
+                </group>
+            </group>
+        )
     }
 
     // Truss Geometry (Aluminum/Structural Look)

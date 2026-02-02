@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useStore } from '../../store';
 import { ASSETS } from '../../types';
-import { Box, Speaker, ArrowUpFromLine, Cuboid } from 'lucide-react';
+import { Box, Speaker, ArrowUpFromLine, Cuboid, Users } from 'lucide-react';
 
 interface AssetCardProps {
     id: string;
@@ -15,6 +15,7 @@ const AssetCard: React.FC<AssetCardProps> = ({ id, data, isActive, onClick }) =>
     const Icon = useMemo(() => {
         if (data.type === 'speaker' || data.type === 'sub') return Speaker;
         if (data.type === 'truss' || data.type === 'motor') return ArrowUpFromLine;
+        if (data.type === 'audience') return Users;
         return Box;
     }, [data.type]);
 
@@ -49,9 +50,9 @@ export const LibraryPanel = () => {
     const categories = useMemo(() => {
         const entries = Object.entries(ASSETS);
         return {
+            'Geometry': entries.filter(([_, v]) => v.type === 'audience' || v.type === 'stage'),
             'Audio Sources': entries.filter(([_, v]) => v.type === 'speaker' || v.type === 'sub'),
             'Rigging': entries.filter(([_, v]) => v.type === 'truss' || v.type === 'motor' || v.type === 'bumper'),
-            'Venue': entries.filter(([_, v]) => v.type === 'stage'),
         };
     }, []);
 

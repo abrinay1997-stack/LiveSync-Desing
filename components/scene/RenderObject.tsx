@@ -15,41 +15,40 @@ interface RenderObjectProps {
 export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, showGizmo }) => {
   const selectObject = useStore(state => state.selectObject);
   const updateObject = useStore(state => state.updateObject);
+  // We use this for final commits to history (onMouseUp)
+  // @ts-ignore - We know this exists from the store update but TS might lag behind without full restart
+  const updateObjectFinal = useStore(state => state.updateObjectFinal) || updateObject; 
   const activeTool = useStore(state => state.activeTool);
   const setCameraLocked = useStore(state => state.setCameraLocked);
   
   const objectRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
 
+  // Logic Decoupling: Defines if the object allows selection based on tool state
+  const isSelectable = ['select', 'move', 'rotate'].includes(activeTool);
+  const isTransformMode = isSelectable;
+  const transformMode = activeTool === 'rotate' ? 'rotate' : 'translate';
+
   // Cursor pointer logic
   useEffect(() => {
-    if (activeTool === 'tape') {
-        document.body.style.cursor = 'crosshair';
+    if (!isSelectable) {
+        // If we are in 'tape' or 'cable' mode, we might want crosshair, managed globally or by that tool
+        // RenderObject shouldn't force 'auto' if another tool wants 'crosshair'
+        if (hovered && activeTool !== 'tape') document.body.style.cursor = 'not-allowed';
         return;
     }
 
     if (hovered) document.body.style.cursor = 'pointer';
     else document.body.style.cursor = 'auto';
     return () => { document.body.style.cursor = 'auto'; }
-  }, [hovered, activeTool]);
+  }, [hovered, activeTool, isSelectable]);
 
-  const isTransformMode = activeTool === 'select' || activeTool === 'move' || activeTool === 'rotate';
-  const transformMode = activeTool === 'rotate' ? 'rotate' : 'translate';
-
-  // Dimensions for selection box
-  // If array, the box is bigger, but for simple selection we keep the origin box 
-  // or we could calculate bounding box of array (complex). 
-  // Staying simple: Selection box is just the top element/origin.
   const w = data.dimensions?.w || 1;
   const h = data.dimensions?.h || 1;
   const d = data.dimensions?.d || 1;
 
-  // Memoize geometry to prevent "undefined reading array" errors in Edges
-  // caused by race conditions when accessing parent geometry via context.
-  // Explicitly passing geometry to Edges is the most robust fix.
   const selectionGeometry = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d]);
 
-  // Clean up geometry on unmount
   useEffect(() => {
     return () => selectionGeometry.dispose();
   }, [selectionGeometry]);
@@ -62,28 +61,24 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
             rotation={new THREE.Euler(...data.rotation)}
             scale={data.scale}
             onClick={(e) => {
-                // If using tape measure, we want the global click handler to take precedence
-                // but we also want the raycaster to hit this object.
-                // Stopping propagation here would prevent measuring on top of objects if logic was global only.
-                // But RenderObject logic is: "Clicking ME selects ME".
-                // So we stop propagation if we are selecting.
-                if (activeTool === 'tape') return; 
+                // Decoupled Logic: We only react if we are in a selection-compatible mode.
+                // We do NOT check for 'tape' specifically.
+                if (!isSelectable) return;
 
                 e.stopPropagation();
                 selectObject(data.id, e.shiftKey);
             }}
             onPointerOver={(e) => {
-                if (activeTool === 'tape') return;
+                if (!isSelectable) return;
                 e.stopPropagation();
                 setHovered(true);
             }}
             onPointerOut={(e) => {
-                if (activeTool === 'tape') return;
+                // Always clear hover
                 e.stopPropagation();
                 setHovered(false);
             }}
         >
-            {/* Logic Branch: Array vs Single Asset */}
             {data.arrayConfig && data.arrayConfig.enabled ? (
                 <ArrayGeometry 
                     type={data.type}
@@ -95,10 +90,7 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                 <AssetGeometry type={data.type} dimensions={data.dimensions} color={data.color} />
             )}
             
-            {/* 
-               Selection Highlight
-            */}
-            {(isSelected || (hovered && activeTool !== 'tape')) && (
+            {(isSelected || (hovered && isSelectable)) && (
                 <mesh geometry={selectionGeometry} visible={false}>
                     {isSelected && (
                         <Edges 
@@ -135,12 +127,18 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                     if (objectRef.current) {
                         const { position, rotation } = objectRef.current;
                         
-                        // For arrays, we don't clamp Y as strictly because they hang
-                        updateObject(data.id, {
+                        // Use updateObjectFinal to commit to history only when drag ends
+                        updateObjectFinal(data.id, {
                             position: [position.x, position.y, position.z],
                             rotation: [rotation.x, rotation.y, rotation.z]
                         });
                     }
+                }}
+                onChange={() => {
+                    // While dragging, update without history (transient)
+                    // We don't trigger store updates here to avoid React render loop lag, 
+                    // relying on TransformControls internal visual update.
+                    // But if we wanted UI to update live, we would use updateObject here.
                 }}
             />
         )}

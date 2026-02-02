@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
-import * as THREE from 'three';
 import { AssetGeometry } from './AssetGeometry';
 import { ArrayConfig, ASSETS } from '../../types';
-import { Edges } from '@react-three/drei';
+import { calculateArrayMechanicalShape, generateDispersionGeometry } from '../../utils/arrayMath';
 
 interface ArrayGeometryProps {
     type: string;
@@ -11,7 +10,6 @@ interface ArrayGeometryProps {
     arrayConfig: ArrayConfig;
 }
 
-// Component to visualize the acoustic dispersion (The "Cone")
 const CoverageCone = ({ 
     dispersion, 
     throwDistance, 
@@ -21,41 +19,8 @@ const CoverageCone = ({
     throwDistance: number, 
     color: string 
 }) => {
-    // Calculate the geometry of the projection pyramid
-    // Typical Line Array element: Narrow Vertical (e.g. 10deg), Wide Horizontal (e.g. 110deg)
     const geometry = useMemo(() => {
-        // Convert deg to rad
-        const hRad = THREE.MathUtils.degToRad(dispersion.h / 2);
-        const vRad = THREE.MathUtils.degToRad(dispersion.v / 2);
-
-        // Calculate dimensions at the end of the throw
-        const halfWidth = Math.tan(hRad) * throwDistance;
-        const halfHeight = Math.tan(vRad) * throwDistance;
-
-        // Vertices: Origin (0,0,0) -> 4 Corners at ThrowDistance
-        // Z is forward in our local asset space (check AssetGeometry orientation)
-        // Adjusting to match: Z is depth.
-        const z = throwDistance;
-        
-        const vertices = new Float32Array([
-            0, 0, 0, // Tip
-            -halfWidth, halfHeight, z,  // Top Left
-            halfWidth, halfHeight, z,   // Top Right
-            halfWidth, -halfHeight, z,  // Bottom Right
-            -halfWidth, -halfHeight, z, // Bottom Left
-            -halfWidth, halfHeight, z,  // Close loop to Top Left
-        ]);
-
-        // Indices to create the wireframe pyramid lines
-        const indices = [
-            0, 1, 0, 2, 0, 3, 0, 4, // Lines from tip to corners
-            1, 2, 2, 3, 3, 4, 4, 1  // Rectangular base at distance
-        ];
-
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-        geo.setIndex(indices);
-        return geo;
+        return generateDispersionGeometry(dispersion, throwDistance);
     }, [dispersion, throwDistance]);
 
     return (
@@ -66,38 +31,15 @@ const CoverageCone = ({
 };
 
 export const ArrayGeometry: React.FC<ArrayGeometryProps> = ({ type, dimensions, color, arrayConfig }) => {
-    const { boxCount, splayAngles, siteAngle, showThrowLines, throwDistance } = arrayConfig;
     const height = dimensions?.h || 0.35;
     
-    // Get Asset definition for dispersion specs
     const assetSpec = ASSETS[type];
     const dispersion = assetSpec?.dispersion || { h: 90, v: 90 };
 
+    // Use the decoupled math engine
     const boxes = useMemo(() => {
-        const items = [];
-        let currentPos = new THREE.Vector3(0, 0, 0);
-        let currentAngle = THREE.MathUtils.degToRad(siteAngle); 
-
-        for (let i = 0; i < boxCount; i++) {
-            const splay = splayAngles[i] || 0;
-            const splayRad = THREE.MathUtils.degToRad(splay);
-            
-            // Add half the splay (simplified mechanical hinge)
-            currentAngle += splayRad;
-
-            items.push({
-                index: i,
-                position: currentPos.clone(),
-                rotation: new THREE.Euler(currentAngle, 0, 0),
-            });
-
-            const yOffset = -height * Math.cos(currentAngle);
-            const zOffset = height * Math.sin(currentAngle); 
-
-            currentPos.add(new THREE.Vector3(0, yOffset, zOffset));
-        }
-        return items;
-    }, [boxCount, splayAngles, siteAngle, height]);
+        return calculateArrayMechanicalShape(arrayConfig, height);
+    }, [arrayConfig, height]);
 
     return (
         <group>
@@ -121,11 +63,10 @@ export const ArrayGeometry: React.FC<ArrayGeometryProps> = ({ type, dimensions, 
                          <meshBasicMaterial color="black" />
                     </mesh>
 
-                    {/* IMPROVED: Dispersion Cone instead of Laser Line */}
-                    {showThrowLines && (
+                    {arrayConfig.showThrowLines && (
                         <CoverageCone 
                             dispersion={dispersion} 
-                            throwDistance={throwDistance} 
+                            throwDistance={arrayConfig.throwDistance} 
                             color={box.index % 2 === 0 ? "#06b6d4" : "#a5f3fc"} 
                         />
                     )}

@@ -3,7 +3,7 @@ import React from 'react';
 
 export type ViewMode = 'perspective' | 'top' | 'side';
 export type ToolType = 'select' | 'move' | 'rotate' | 'tape' | 'label' | 'cable';
-export type AssetType = 'speaker' | 'sub' | 'bumper' | 'truss' | 'motor' | 'stage';
+export type AssetType = 'speaker' | 'sub' | 'bumper' | 'truss' | 'motor' | 'stage' | 'audience';
 
 export interface ArrayConfig {
     enabled: boolean;
@@ -60,9 +60,21 @@ interface AssetDefinition {
     // Restrictions
     maxSplay?: number;
     isLineArray?: boolean; // New flag for auto-configuration
+    isResizable?: boolean; // Allows W/D/H modification in Inspector
 }
 
 export const ASSETS: Record<string, AssetDefinition> = {
+  // --- AUDIENCE SURFACES (CRITICAL ADDITION) ---
+  'audience-zone': {
+    name: 'Audience Zone',
+    type: 'audience',
+    dimensions: { w: 10, h: 0.2, d: 10 },
+    color: '#3b82f6',
+    description: 'Listening Plane',
+    weight: 0,
+    isResizable: true
+  },
+
   // --- LARGE FORMAT ---
   'la-k2': {
     name: 'K2 Line Source',
