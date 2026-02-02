@@ -5,6 +5,15 @@ export type ViewMode = 'perspective' | 'top' | 'side';
 export type ToolType = 'select' | 'move' | 'rotate' | 'tape' | 'label' | 'cable';
 export type AssetType = 'speaker' | 'sub' | 'bumper' | 'truss' | 'motor' | 'stage';
 
+export interface ArrayConfig {
+    enabled: boolean;
+    boxCount: number;
+    siteAngle: number; // The tilt of the bumper/top grid
+    splayAngles: number[]; // Angles between boxes
+    showThrowLines: boolean;
+    throwDistance: number;
+}
+
 export interface SceneObject {
   id: string;
   name: string;
@@ -17,6 +26,9 @@ export interface SceneObject {
   color: string;
   dimensions?: { w: number; h: number; d: number };
   locked?: boolean;
+  
+  // Audio Engineering Data
+  arrayConfig?: ArrayConfig; 
 }
 
 export interface Layer {
@@ -45,6 +57,9 @@ interface AssetDefinition {
     maxSPL?: number; // dB
     dispersion?: { h: number; v: number }; // degrees
     power?: number; // Watts
+    // Restrictions
+    maxSplay?: number;
+    isLineArray?: boolean; // New flag for auto-configuration
 }
 
 export const ASSETS: Record<string, AssetDefinition> = {
@@ -57,7 +72,9 @@ export const ASSETS: Record<string, AssetDefinition> = {
     description: 'Active WST® system',
     weight: 56,
     maxSPL: 147,
-    dispersion: { h: 110, v: 10 }
+    dispersion: { h: 110, v: 10 },
+    maxSplay: 10,
+    isLineArray: true
   },
   'la-ks28': {
     name: 'KS28 Subwoofer',
@@ -67,7 +84,8 @@ export const ASSETS: Record<string, AssetDefinition> = {
     description: 'Flyable dual 18"',
     weight: 79,
     maxSPL: 143,
-    dispersion: { h: 360, v: 360 }
+    dispersion: { h: 360, v: 360 },
+    isLineArray: true
   },
   
   // --- MEDIUM FORMAT ---
@@ -79,7 +97,9 @@ export const ASSETS: Record<string, AssetDefinition> = {
     description: 'Modular Line Source',
     weight: 26,
     maxSPL: 142,
-    dispersion: { h: 110, v: 10 }
+    dispersion: { h: 110, v: 10 },
+    maxSplay: 10,
+    isLineArray: true
   },
   'la-sb18': {
     name: 'SB18 Sub',

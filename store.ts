@@ -31,6 +31,7 @@ interface AppState {
 
   // Actions
   addObject: (assetKey: string, position: [number, number, number]) => void;
+  cloneObject: (id: string) => void; // New Action
   updateObject: (id: string, updates: Partial<SceneObject>) => void;
   removeObject: (id: string) => void;
   selectObject: (id: string, multi: boolean) => void;
@@ -80,7 +81,16 @@ export const useStore = create<AppState>((set, get) => ({
       scale: [1, 1, 1],
       layerId: 'audio',
       color: '#27272a',
-      dimensions: { w: 1.3, h: 0.35, d: 0.4 }
+      dimensions: { w: 1.3, h: 0.35, d: 0.4 },
+      // Example of a pre-configured array
+      arrayConfig: {
+          enabled: true,
+          boxCount: 6,
+          siteAngle: -2,
+          splayAngles: [0, 1, 2, 3, 4, 5],
+          showThrowLines: true,
+          throwDistance: 20
+      }
     }
   ],
   layers: [
@@ -109,10 +119,27 @@ export const useStore = create<AppState>((set, get) => ({
     const template = ASSETS[assetKey];
     if (!template) return state;
 
+    // Default Array Configuration for Speakers
+    let arrayConfig = undefined;
+    if (template.type === 'speaker' || template.type === 'sub') {
+        // Smart Default: If it's a Line Array element, create a 6-box hang by default
+        const isLineArray = template.isLineArray;
+        const defaultCount = isLineArray ? 6 : 1;
+        
+        arrayConfig = {
+            enabled: true,
+            boxCount: defaultCount,
+            siteAngle: 0,
+            splayAngles: Array(defaultCount).fill(0),
+            showThrowLines: isLineArray || false,
+            throwDistance: 20
+        };
+    }
+
     const newObj: SceneObject = {
       id: uuidv4(),
       name: `${template.name} ${state.objects.filter(o => o.type === template.type).length + 1}`,
-      model: assetKey, // Critical for looking up tech specs later
+      model: assetKey, 
       type: template.type!,
       position: position,
       rotation: [0, 0, 0],
@@ -120,6 +147,7 @@ export const useStore = create<AppState>((set, get) => ({
       layerId: template.type === 'truss' || template.type === 'motor' ? 'rigging' : 'audio',
       color: template.color || '#fff',
       dimensions: template.dimensions,
+      arrayConfig: arrayConfig
     };
     
     return { 
@@ -127,6 +155,31 @@ export const useStore = create<AppState>((set, get) => ({
         selectedIds: [newObj.id],
         activePlacementAsset: null,
         activeTool: 'select'
+    };
+  }),
+
+  cloneObject: (id) => set((state) => {
+    const original = state.objects.find(o => o.id === id);
+    if (!original) return state;
+
+    // Deep copy the arrayConfig if it exists
+    const arrayConfigClone = original.arrayConfig ? {
+        ...original.arrayConfig,
+        splayAngles: [...original.arrayConfig.splayAngles]
+    } : undefined;
+
+    const newObj: SceneObject = {
+        ...original,
+        id: uuidv4(),
+        name: `${original.name} (Copy)`,
+        // Offset position slightly so it's visible
+        position: [original.position[0] + 2, original.position[1], original.position[2]],
+        arrayConfig: arrayConfigClone
+    };
+
+    return {
+        objects: [...state.objects, newObj],
+        selectedIds: [newObj.id]
     };
   }),
 

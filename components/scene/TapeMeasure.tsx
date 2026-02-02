@@ -127,11 +127,11 @@ export const TapeMeasure = () => {
                             lineWidth={2} 
                             dashed={false}
                         />
-                         <mesh position={start}><sphereGeometry args={[0.03]} /><meshBasicMaterial color="#f59e0b" /></mesh>
-                         <mesh position={end}><sphereGeometry args={[0.03]} /><meshBasicMaterial color="#f59e0b" /></mesh>
+                         <mesh position={start}><sphereGeometry args={[0.03]} /><meshBasicMaterial color="#f59e0b" depthTest={false} /></mesh>
+                         <mesh position={end}><sphereGeometry args={[0.03]} /><meshBasicMaterial color="#f59e0b" depthTest={false} /></mesh>
                          
-                         <Html position={mid}>
-                            <div className="bg-black/80 backdrop-blur border border-amber-500/50 rounded px-2 py-1 flex items-center gap-2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg cursor-default pointer-events-auto">
+                         <Html position={mid} zIndexRange={[100, 0]}>
+                            <div className="bg-black/80 backdrop-blur border border-amber-500/50 rounded px-2 py-1 flex items-center gap-2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg cursor-default pointer-events-auto select-none">
                                 <span className="text-amber-500 text-xs font-mono font-bold whitespace-nowrap">{m.distance}m</span>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); removeMeasurement(m.id); }}
@@ -156,10 +156,10 @@ export const TapeMeasure = () => {
                         dashScale={10}
                         dashSize={0.5}
                     />
-                    <mesh position={startPoint}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#06b6d4" /></mesh>
-                    <mesh position={currentPoint}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#06b6d4" /></mesh>
+                    <mesh position={startPoint}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#06b6d4" depthTest={false} /></mesh>
+                    <mesh position={currentPoint}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#06b6d4" depthTest={false} /></mesh>
                     
-                    <Html position={currentPoint.clone().add(new THREE.Vector3(0, 0.2, 0))}>
+                    <Html position={currentPoint.clone().add(new THREE.Vector3(0, 0.2, 0))} zIndexRange={[100, 0]}>
                         <div className="bg-aether-accent/90 text-black px-2 py-0.5 rounded text-[10px] font-bold font-mono transform -translate-x-1/2 pointer-events-none">
                             {startPoint.distanceTo(currentPoint).toFixed(3)}m
                         </div>
@@ -171,7 +171,7 @@ export const TapeMeasure = () => {
             {activeTool === 'tape' && currentPoint && !isDrawing && (
                  <mesh position={currentPoint}>
                     <sphereGeometry args={[0.05]} />
-                    <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+                    <meshBasicMaterial color="#ffffff" transparent opacity={0.5} depthTest={false} />
                  </mesh>
             )}
         </group>

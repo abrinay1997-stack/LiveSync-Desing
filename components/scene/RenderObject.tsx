@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useStore } from '../../store';
 import { SceneObject } from '../../types';
 import { AssetGeometry } from './AssetGeometry';
+import { ArrayGeometry } from './ArrayGeometry';
 
 interface RenderObjectProps {
     data: SceneObject;
@@ -36,6 +37,9 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
   const transformMode = activeTool === 'rotate' ? 'rotate' : 'translate';
 
   // Dimensions for selection box
+  // If array, the box is bigger, but for simple selection we keep the origin box 
+  // or we could calculate bounding box of array (complex). 
+  // Staying simple: Selection box is just the top element/origin.
   const w = data.dimensions?.w || 1;
   const h = data.dimensions?.h || 1;
   const d = data.dimensions?.d || 1;
@@ -79,10 +83,20 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                 setHovered(false);
             }}
         >
-            <AssetGeometry type={data.type} dimensions={data.dimensions} color={data.color} />
+            {/* Logic Branch: Array vs Single Asset */}
+            {data.arrayConfig && data.arrayConfig.enabled ? (
+                <ArrayGeometry 
+                    type={data.type}
+                    dimensions={data.dimensions}
+                    color={data.color}
+                    arrayConfig={data.arrayConfig}
+                />
+            ) : (
+                <AssetGeometry type={data.type} dimensions={data.dimensions} color={data.color} />
+            )}
             
             {/* 
-               Use explicit geometry for Edges to ensure stability
+               Selection Highlight
             */}
             {(isSelected || (hovered && activeTool !== 'tape')) && (
                 <mesh geometry={selectionGeometry} visible={false}>
@@ -121,13 +135,9 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                     if (objectRef.current) {
                         const { position, rotation } = objectRef.current;
                         
-                        const minHeight = (data.dimensions?.h || 0) / 2;
-                        const clampedY = Math.max(position.y, minHeight);
-
-                        objectRef.current.position.y = clampedY;
-
+                        // For arrays, we don't clamp Y as strictly because they hang
                         updateObject(data.id, {
-                            position: [position.x, clampedY, position.z],
+                            position: [position.x, position.y, position.z],
                             rotation: [rotation.x, rotation.y, rotation.z]
                         });
                     }
