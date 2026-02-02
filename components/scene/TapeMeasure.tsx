@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,38 +6,7 @@ import { useStore } from '../../store';
 import { v4 as uuidv4 } from 'uuid';
 import { X } from 'lucide-react';
 import { snapVector } from '../../utils/snapping';
-
-// Custom Line component to replace problematic Drei Line
-const TapeLine = ({ start, end, color, dashed }: { start: THREE.Vector3, end: THREE.Vector3, color: string, dashed?: boolean }) => {
-    const lineRef = useRef<THREE.Line>(null);
-    
-    // Create geometry using useMemo
-    const geometry = useMemo(() => {
-        return new THREE.BufferGeometry().setFromPoints([start, end]);
-    }, [start, end]);
-
-    // Proper disposal
-    useEffect(() => {
-        return () => geometry.dispose();
-    }, [geometry]);
-
-    // Compute distances for dashed lines
-    useLayoutEffect(() => {
-        if (dashed && lineRef.current) {
-            lineRef.current.computeLineDistances();
-        }
-    }, [geometry, dashed]);
-
-    return (
-        <line ref={lineRef as any} geometry={geometry}>
-            {dashed ? (
-                <lineDashedMaterial color={color} dashSize={0.2} gapSize={0.2} />
-            ) : (
-                <lineBasicMaterial color={color} />
-            )}
-        </line>
-    );
-};
+import { TapeLine } from './primitives/TapeLine';
 
 export const TapeMeasure = () => {
     const activeTool = useStore(state => state.activeTool);

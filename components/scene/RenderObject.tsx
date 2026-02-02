@@ -29,7 +29,6 @@ const SelectionEdges = ({ geometry, color, opacity = 1, threshold = 15 }: { geom
 
 export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, showGizmo }) => {
   const selectObject = useStore(state => state.selectObject);
-  const updateObject = useStore(state => state.updateObject);
   const removeObject = useStore(state => state.removeObject);
   
   // Cable Actions
@@ -38,8 +37,8 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
   const pendingCableStartId = useStore(state => state.pendingCableStartId);
   
   // We use this for final commits to history (onMouseUp)
-  // @ts-ignore
-  const updateObjectFinal = useStore(state => state.updateObjectFinal) || updateObject; 
+  // Now strictly typed from store
+  const updateObjectFinal = useStore(state => state.updateObjectFinal); 
   const activeTool = useStore(state => state.activeTool);
   const setCameraLocked = useStore(state => state.setCameraLocked);
   

@@ -14,9 +14,10 @@ import { AcousticInspector } from '../inspectors/AcousticInspector';
 export const PropertiesPanel = () => {
     const selectedIds = useStore(state => state.selectedIds);
     const objects = useStore(state => state.objects);
-    const updateObject = useStore(state => state.updateObject);
-    // @ts-ignore
-    const updateObjectFinal = useStore(state => state.updateObjectFinal) || updateObject;
+    
+    // Now explicitly typed in store interface, no fallback needed
+    const updateObjectFinal = useStore(state => state.updateObjectFinal);
+    
     const removeObject = useStore(state => state.removeObject);
     const cloneObject = useStore(state => state.cloneObject);
     const lightingPreset = useStore(state => state.lightingPreset);

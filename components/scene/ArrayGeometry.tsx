@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import * as THREE from 'three';
 import { AssetGeometry } from './AssetGeometry';
 import { ArrayConfig } from '../../types';
 import { ASSETS } from '../../data/library';
-import { calculateArrayMechanicalShape, generateDispersionGeometry } from '../../utils/arrayMath';
+import { generateDispersionGeometry } from '../../utils/arrayMath';
+import { calculateArrayInWorker } from '../../utils/mathWorker';
 
 interface ArrayGeometryProps {
     type: string;
@@ -33,13 +35,25 @@ const CoverageCone = ({
 
 export const ArrayGeometry: React.FC<ArrayGeometryProps> = ({ type, dimensions, color, arrayConfig }) => {
     const height = dimensions?.h || 0.35;
-    
     const assetSpec = ASSETS[type];
     const dispersion = assetSpec?.dispersion || { h: 90, v: 90 };
 
-    // Use the decoupled math engine
-    const boxes = useMemo(() => {
-        return calculateArrayMechanicalShape(arrayConfig, height);
+    // State to hold worker results
+    const [boxes, setBoxes] = useState<any[]>([]);
+
+    // Offload calculation to worker when config changes
+    useEffect(() => {
+        let isMounted = true;
+        
+        calculateArrayInWorker(arrayConfig, height).then((items) => {
+            if (isMounted) {
+                // Deserialize arrays back to ThreeJS objects or use simpler data format
+                // Here we keep them as simple objects with [x,y,z] arrays to avoid instantiation overhead
+                setBoxes(items);
+            }
+        });
+
+        return () => { isMounted = false; };
     }, [arrayConfig, height]);
 
     return (
@@ -51,7 +65,11 @@ export const ArrayGeometry: React.FC<ArrayGeometryProps> = ({ type, dimensions, 
             </mesh>
 
             {boxes.map((box) => (
-                <group key={box.index} position={box.position} rotation={box.rotation}>
+                <group 
+                    key={box.index} 
+                    position={box.position} 
+                    rotation={box.rotation}
+                >
                     <AssetGeometry 
                         type={type} 
                         dimensions={dimensions} 

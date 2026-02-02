@@ -8,6 +8,7 @@ import { ViewportController } from './scene/ViewportController';
 import { TapeMeasure } from './scene/TapeMeasure';
 import { CableRenderer } from './scene/CableRenderer';
 import { StageEnvironment } from './scene/StageEnvironment';
+import { InstancedRigging } from './scene/InstancedRigging';
 
 export const Scene3D = () => {
   const objects = useStore(state => state.objects);
@@ -15,13 +16,25 @@ export const Scene3D = () => {
   const selectedIds = useStore(state => state.selectedIds);
   const clearSelection = useStore(state => state.clearSelection);
 
-  // Memoize visible objects calculation to prevent unnecessary iterations
-  const visibleObjects = useMemo(() => {
+  // Filter for objects that MUST be rendered individually:
+  // 1. Complex objects (Speakers/Arrays) that have custom geometry logic (splay angles)
+  // 2. Any object that is currently SELECTED (so it gets a Gizmo and high-res highlight)
+  // 3. Objects that are NOT rigging (e.g. Stage, Audience)
+  // 4. Objects in hidden layers are filtered out entirely
+  const individualObjects = useMemo(() => {
     return objects.filter(obj => {
         const layer = layers.find(l => l.id === obj.layerId);
-        return layer ? layer.visible : true;
+        if (layer && !layer.visible) return false;
+
+        const isRigging = obj.type === 'truss' || obj.type === 'motor';
+        const isSelected = selectedIds.includes(obj.id);
+        
+        // If it's rigging and NOT selected, it goes to the Instanced Renderer, so return false here
+        if (isRigging && !isSelected) return false;
+
+        return true;
     });
-  }, [objects, layers]);
+  }, [objects, layers, selectedIds]);
 
   return (
     <div className="w-full h-full bg-[#09090b]">
@@ -46,7 +59,11 @@ export const Scene3D = () => {
         <TapeMeasure />
         <CableRenderer />
 
-        {visibleObjects.map(obj => (
+        {/* High Performance Batch Renderer for static Truss/Motors */}
+        <InstancedRigging />
+
+        {/* Interactive Renderer for Selected Items & Complex Geometry */}
+        {individualObjects.map(obj => (
           <RenderObject 
             key={obj.id} 
             data={obj} 

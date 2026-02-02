@@ -1,8 +1,9 @@
 import React, { useRef } from 'react';
 import { useStore } from '../../store';
+import { StorageService } from '../../services/StorageService';
 import { 
     BoxSelect, Download, Search,
-    PanelLeft, PanelBottom, Settings2, Layers, Upload
+    PanelLeft, PanelBottom, Settings2, Layers, Upload, Cloud
 } from 'lucide-react';
 
 export const TopBar = () => {
@@ -25,43 +26,22 @@ export const TopBar = () => {
 
     const handleExport = () => {
         const state = useStore.getState();
-        const projectData = {
-            version: "1.0",
-            timestamp: new Date().toISOString(),
-            objects: state.objects,
-            layers: state.layers,
-            cables: state.cables,
-            measurements: state.measurements,
-            cameraTarget: state.cameraTarget,
-            lightingPreset: state.lightingPreset
-        };
-
-        const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `livesync-design-${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const data = StorageService.serializeProject(state);
+        StorageService.downloadProject(data);
     };
 
-    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const json = JSON.parse(event.target?.result as string);
-                loadProject(json);
-            } catch (err) {
-                console.error("Failed to parse project file", err);
-                alert("Invalid project file");
-            }
-        };
-        reader.readAsText(file);
+        try {
+            const data = await StorageService.importProject(file);
+            loadProject(data);
+        } catch (err) {
+            console.error("Import failed", err);
+            alert("Failed to load project file. Please check the format.");
+        }
+        
         // Reset input
         e.target.value = '';
     };
@@ -135,6 +115,12 @@ export const TopBar = () => {
                     >
                         <Download size={14} />
                         <span>Export</span>
+                    </button>
+                    <button 
+                        className="flex items-center gap-2 px-3 py-1.5 bg-aether-accent/10 border border-aether-accent/20 text-aether-accent hover:bg-aether-accent/20 rounded-md text-xs font-semibold transition-all"
+                        title="Cloud Sync (Enterprise)"
+                    >
+                        <Cloud size={14} />
                     </button>
                 </div>
             </div>
