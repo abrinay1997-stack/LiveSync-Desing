@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore, LightingPreset } from '../../store';
-import { ASSETS, SceneObject } from '../../types';
+import { SceneObject } from '../../types';
+import { ASSETS } from '../../data/library';
 import { NumericInput } from '../ui/NumericInput';
 import { BoxSelect, Plus, Trash2, ChevronDown, ChevronRight, Sun, Globe, Layers, Target, LayoutTemplate } from 'lucide-react';
 

@@ -1,40 +1,60 @@
 import React, { useState } from 'react';
 import { useThree } from '@react-three/fiber';
-import * as THREE from 'three';
 import { useStore } from '../../store';
-import { ASSETS } from '../../types';
+import { ASSETS } from '../../data/library';
 import { AssetGeometry } from './AssetGeometry';
+import { snapCoords } from '../../utils/snapping';
 
 export const GhostObject = () => {
     const activePlacementAsset = useStore(state => state.activePlacementAsset);
     const addObject = useStore(state => state.addObject);
     const snappingEnabled = useStore(state => state.snappingEnabled);
+    const objects = useStore(state => state.objects); // Get existing objects for snapping
     
     const [pos, setPos] = useState<[number, number, number] | null>(null);
-    const { raycaster, camera, pointer } = useThree();
+    const [snapLines, setSnapLines] = useState<{x: number | null, z: number | null}>({x: null, z: null});
 
     const template = activePlacementAsset ? ASSETS[activePlacementAsset] : null;
 
     const handlePointerMove = (e: any) => {
-        // Solo calcular si estamos intentando colocar algo
+        // Only calculate if placing
         if (!activePlacementAsset) return;
 
-        // Note: 'e' here is the R3F event which already contains intersections, 
-        // but since we want to intersect a specific conceptual plane:
-        
-        // We can just rely on the event from the plane mesh below
         const point = e.point; // R3F event point (Vector3)
 
         if (point) {
             let x = point.x;
             let z = point.z;
             
+            // --- 1. GRID SNAPPING ---
+            const coords = snapCoords(x, 0, z, snappingEnabled);
+            x = coords[0];
+            z = coords[2];
+
+            // --- 2. OBJECT-TO-OBJECT SNAPPING (Magnetic) ---
+            // If snapping is enabled, we also check if we are close to another object's alignment
+            let snappedX = null;
+            let snappedZ = null;
+
             if (snappingEnabled) {
-                x = Math.round(x * 2) / 2;
-                z = Math.round(z * 2) / 2;
+                const SNAP_THRESHOLD = 0.3; // Distance to trigger snap
+                
+                // Find closest alignment
+                for (const obj of objects) {
+                    if (Math.abs(obj.position[0] - x) < SNAP_THRESHOLD) {
+                        x = obj.position[0];
+                        snappedX = x;
+                    }
+                    if (Math.abs(obj.position[2] - z) < SNAP_THRESHOLD) {
+                        z = obj.position[2];
+                        snappedZ = z;
+                    }
+                }
             }
             
-            // Altura basada en el objeto para que quede sobre el suelo
+            setSnapLines({ x: snappedX, z: snappedZ });
+
+            // Height based on object bounds to sit on floor
             const heightOffset = template?.dimensions ? template.dimensions.h / 2 : 0;
             
             setPos([x, heightOffset, z]);
@@ -43,7 +63,7 @@ export const GhostObject = () => {
 
     const handleClick = (e: any) => {
         if (activePlacementAsset && pos) {
-            e.stopPropagation(); // Evitar que el click seleccione cosas debajo
+            e.stopPropagation(); // Stop click from hitting things below
             addObject(activePlacementAsset, pos);
         }
     }
@@ -52,8 +72,7 @@ export const GhostObject = () => {
 
     return (
         <>
-            {/* Plane invisible pero RAYCASTABLE para capturar el mouse en todo el viewport SOLO cuando estamos colocando */}
-            {/* visible={false} prevents raycasting in Three.js, so we must use visible={true} with a transparent material */}
+            {/* Invisible RAYCASTABLE plane to catch mouse over the entire viewport ONLY when placing */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} onPointerMove={handlePointerMove} onClick={handleClick}>
                 <planeGeometry args={[1000, 1000]} />
                 <meshBasicMaterial visible={false} />
@@ -67,10 +86,26 @@ export const GhostObject = () => {
                         color={template.color || '#fff'} 
                         isGhost={true} 
                     />
+                    
+                    {/* Grid Snap Indicator Line (Green) */}
                     <mesh position={[0, -pos[1]/2, 0]}>
                         <boxGeometry args={[0.02, pos[1], 0.02]} />
                         <meshBasicMaterial color="#06b6d4" opacity={0.5} transparent />
                     </mesh>
+
+                    {/* Object Snap Guides (Blue Infinite Lines) */}
+                    {snapLines.x !== null && (
+                         <mesh position={[0, -pos[1]/2, 0]}>
+                            <boxGeometry args={[0.05, 0.1, 100]} />
+                            <meshBasicMaterial color="#3b82f6" opacity={0.2} transparent />
+                        </mesh>
+                    )}
+                    {snapLines.z !== null && (
+                         <mesh position={[0, -pos[1]/2, 0]}>
+                            <boxGeometry args={[100, 0.1, 0.05]} />
+                            <meshBasicMaterial color="#3b82f6" opacity={0.2} transparent />
+                        </mesh>
+                    )}
                 </group>
             )}
         </>

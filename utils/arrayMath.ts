@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ArrayConfig, ASSETS } from '../types';
+import { ArrayConfig } from '../types';
 
 interface BoxTransform {
     index: number;

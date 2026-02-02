@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { SceneObject, Layer, ViewMode, ToolType, ASSETS, Measurement } from './types';
+import { SceneObject, Layer, ViewMode, ToolType, Measurement, Cable } from './types';
+import { createSceneObject, cloneSceneObject } from './utils/factory';
 import { v4 as uuidv4 } from 'uuid';
 
 export type LightingPreset = 'studio' | 'stage' | 'outdoor';
@@ -15,20 +16,26 @@ interface UIState {
 interface ProjectData {
     objects: SceneObject[];
     measurements: Measurement[];
+    cables: Cable[];
     cameraTarget: [number, number, number];
 }
 
 interface AppState {
   objects: SceneObject[];
   layers: Layer[];
+  cables: Cable[];
   selectedIds: string[];
   measurements: Measurement[];
   viewMode: ViewMode;
   activeTool: ToolType;
   snappingEnabled: boolean;
+  continuousPlacement: boolean; // Pencil Mode
   activePlacementAsset: string | null;
   isCameraLocked: boolean;
   
+  // Cable Tool State
+  pendingCableStartId: string | null;
+
   // Scene Settings
   cameraTarget: [number, number, number];
   lightingPreset: LightingPreset;
@@ -46,6 +53,7 @@ interface AppState {
   addObject: (assetKey: string, position: [number, number, number]) => void;
   cloneObject: (id: string) => void;
   updateObject: (id: string, updates: Partial<SceneObject>) => void;
+  updateObjectFinal: (id: string, updates: Partial<SceneObject>) => void;
   removeObject: (id: string) => void;
   selectObject: (id: string, multi: boolean) => void;
   clearSelection: () => void;
@@ -54,10 +62,17 @@ interface AppState {
   toggleLayerVisibility: (id: string) => void;
   setPlacementAsset: (assetKey: string | null) => void;
   toggleSnapping: () => void;
+  toggleContinuousPlacement: () => void;
   setCameraLocked: (locked: boolean) => void;
   setCameraTarget: (target: [number, number, number]) => void;
   setLightingPreset: (preset: LightingPreset) => void;
   
+  // Cable Actions
+  startCable: (objectId: string) => void;
+  completeCable: (endObjectId: string) => void;
+  cancelCable: () => void;
+  removeCable: (id: string) => void;
+
   // Measurement Actions
   addMeasurement: (measurement: Measurement) => void;
   removeMeasurement: (id: string) => void;
@@ -79,6 +94,7 @@ interface AppState {
 const createSnapshot = (state: AppState): ProjectData => ({
     objects: state.objects,
     measurements: state.measurements,
+    cables: state.cables,
     cameraTarget: state.cameraTarget
 });
 
@@ -122,13 +138,16 @@ export const useStore = create<AppState>((set, get) => ({
     { id: 'rigging', name: 'Rigging & Motors', visible: true, locked: false, color: '#f59e0b' },
     { id: 'venue', name: 'Venue Geometry', visible: true, locked: true, color: '#71717a' },
   ],
+  cables: [],
   selectedIds: [],
   measurements: [],
   viewMode: 'perspective',
   activeTool: 'select',
   snappingEnabled: true,
+  continuousPlacement: false,
   activePlacementAsset: null,
   isCameraLocked: false,
+  pendingCableStartId: null,
   cameraTarget: [0, 0, 0],
   lightingPreset: 'studio',
 
@@ -147,12 +166,11 @@ export const useStore = create<AppState>((set, get) => ({
   // --- HISTORY ACTIONS ---
   pushHistory: () => set((state) => {
       const snapshot = createSnapshot(state);
-      // Limit history to 50 steps to save memory
       const newPast = [...state.history.past, snapshot].slice(-50);
       return {
           history: {
               past: newPast,
-              future: [] // Clear future on new action
+              future: []
           }
       };
   }),
@@ -162,19 +180,18 @@ export const useStore = create<AppState>((set, get) => ({
 
       const previous = state.history.past[state.history.past.length - 1];
       const newPast = state.history.past.slice(0, -1);
-      
       const currentSnapshot = createSnapshot(state);
 
       return {
           ...state,
           objects: previous.objects,
           measurements: previous.measurements,
+          cables: previous.cables,
           cameraTarget: previous.cameraTarget,
           history: {
               past: newPast,
               future: [currentSnapshot, ...state.history.future]
           },
-          // Clear selection on undo to avoid ghost IDs
           selectedIds: [] 
       };
   }),
@@ -184,13 +201,13 @@ export const useStore = create<AppState>((set, get) => ({
 
       const next = state.history.future[0];
       const newFuture = state.history.future.slice(1);
-      
       const currentSnapshot = createSnapshot(state);
 
       return {
           ...state,
           objects: next.objects,
           measurements: next.measurements,
+          cables: next.cables,
           cameraTarget: next.cameraTarget,
           history: {
               past: [...state.history.past, currentSnapshot],
@@ -200,49 +217,27 @@ export const useStore = create<AppState>((set, get) => ({
       };
   }),
 
-  // --- OBJECT ACTIONS (Wrapped with pushHistory) ---
+  // --- OBJECT ACTIONS ---
 
   addObject: (assetKey, position) => {
-      get().pushHistory(); // SNAPSHOT BEFORE CHANGE
+      get().pushHistory();
       set((state) => {
-        const template = ASSETS[assetKey];
-        if (!template) return state;
+        const existingCount = state.objects.filter(o => o.model === assetKey).length;
+        const newObj = createSceneObject(assetKey, position, existingCount);
 
-        let arrayConfig = undefined;
-        if (template.type === 'speaker' || template.type === 'sub') {
-            const isLineArray = template.isLineArray;
-            const defaultCount = isLineArray ? 6 : 1;
-            
-            arrayConfig = {
-                enabled: true,
-                boxCount: defaultCount,
-                siteAngle: 0,
-                splayAngles: Array(defaultCount).fill(0),
-                showThrowLines: isLineArray || false,
-                throwDistance: 20
-            };
-        }
-
-        const newObj: SceneObject = {
-          id: uuidv4(),
-          name: `${template.name} ${state.objects.filter(o => o.type === template.type).length + 1}`,
-          model: assetKey, 
-          type: template.type!,
-          position: position,
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-          layerId: template.type === 'truss' || template.type === 'motor' ? 'rigging' : 'audio',
-          color: template.color || '#fff',
-          dimensions: template.dimensions,
-          arrayConfig: arrayConfig
-        };
+        if (!newObj) return state;
         
-        return { 
-            objects: [...state.objects, newObj], 
-            selectedIds: [newObj.id],
-            activePlacementAsset: null,
-            activeTool: 'select'
+        // Logic for Pencil/Continuous Mode
+        const newState = { 
+            objects: [...state.objects, newObj],
+            // If continuous is OFF, we select the new object and switch tool.
+            // If continuous is ON, we keep the asset active and DO NOT select the new object (so we can keep clicking)
+            selectedIds: state.continuousPlacement ? [] : [newObj.id],
+            activePlacementAsset: state.continuousPlacement ? state.activePlacementAsset : null,
+            activeTool: state.continuousPlacement ? state.activeTool : 'select'
         };
+
+        return newState;
     })
   },
 
@@ -251,20 +246,7 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => {
         const original = state.objects.find(o => o.id === id);
         if (!original) return state;
-
-        const arrayConfigClone = original.arrayConfig ? {
-            ...original.arrayConfig,
-            splayAngles: [...original.arrayConfig.splayAngles]
-        } : undefined;
-
-        const newObj: SceneObject = {
-            ...original,
-            id: uuidv4(),
-            name: `${original.name} (Copy)`,
-            position: [original.position[0] + 2, original.position[1], original.position[2]],
-            arrayConfig: arrayConfigClone
-        };
-
+        const newObj = cloneSceneObject(original);
         return {
             objects: [...state.objects, newObj],
             selectedIds: [newObj.id]
@@ -273,23 +255,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateObject: (id, updates) => {
-      // NOTE: For dragging, this might create too many history steps. 
-      // In a real app, we'd use 'onDragStart' and 'onDragEnd' to snapshot.
-      // For now, we assume this is called on "End" of interactions mostly.
-      // Optimization: We could check if we are 'dragging' via a transient state.
-      // For property panel updates, this is fine.
       set((state) => {
-          // If the update is purely transient (like dragging preview), we might skip history,
-          // but detecting that here is complex without more flags.
-          // We will rely on the UI components to call updateObject only when committed (e.g. onBlur or onMouseUp).
           return {
              objects: state.objects.map(o => o.id === id ? { ...o, ...updates } : o)
           }
       })
   },
 
-  // Special action for committed updates (to use with onMouseUp/onBlur)
-  // This explicitly creates a history entry
   updateObjectFinal: (id, updates) => {
       get().pushHistory();
       set((state) => ({
@@ -301,15 +273,24 @@ export const useStore = create<AppState>((set, get) => ({
       get().pushHistory();
       set((state) => ({
         objects: state.objects.filter(o => o.id !== id),
+        cables: state.cables.filter(c => c.startObjectId !== id && c.endObjectId !== id),
         selectedIds: state.selectedIds.filter(sid => sid !== id)
       }))
   },
 
   selectObject: (id, multi) => set((state) => {
+    // If Eraser is active, do not select
+    if (state.activeTool === 'eraser') return state;
+    
+    // Prevent selection if we are in the middle of placing something (unless tool is select)
+    if (state.activePlacementAsset && state.continuousPlacement) return state;
+    
+    // Prevent selection if we are cabling
+    if (state.activeTool === 'cable') return state;
+
     if (state.activeTool !== 'select' && state.activeTool !== 'move' && state.activeTool !== 'rotate' && state.selectedIds.includes(id)) {
         return state;
     }
-    // Prevent selection if measuring
     if (state.activeTool === 'tape') return state;
 
     const shouldOpenInspector = !state.ui.showInspector; 
@@ -324,15 +305,56 @@ export const useStore = create<AppState>((set, get) => ({
 
   clearSelection: () => set({ selectedIds: [] }),
   setViewMode: (mode) => set({ viewMode: mode }),
-  setTool: (tool) => set({ activeTool: tool }),
+  
+  setTool: (tool) => set((state) => ({ 
+      activeTool: tool,
+      pendingCableStartId: null, // Reset pending cable if tool changes
+      activePlacementAsset: null // Reset placement
+  })),
+
   toggleLayerVisibility: (id) => set((state) => ({
     layers: state.layers.map(l => l.id === id ? { ...l, visible: !l.visible } : l)
   })),
   setPlacementAsset: (assetKey) => set({ activePlacementAsset: assetKey }),
   toggleSnapping: () => set((state) => ({ snappingEnabled: !state.snappingEnabled })),
+  toggleContinuousPlacement: () => set((state) => ({ continuousPlacement: !state.continuousPlacement })),
   setCameraLocked: (locked) => set({ isCameraLocked: locked }),
   setCameraTarget: (target) => set({ cameraTarget: target }),
   setLightingPreset: (preset) => set({ lightingPreset: preset }),
+
+  // --- CABLE ACTIONS ---
+  startCable: (objectId) => set({ pendingCableStartId: objectId }),
+  
+  completeCable: (endObjectId) => {
+      get().pushHistory();
+      set((state) => {
+          if (!state.pendingCableStartId || state.pendingCableStartId === endObjectId) {
+              return { pendingCableStartId: null };
+          }
+          
+          const newCable: Cable = {
+              id: uuidv4(),
+              startObjectId: state.pendingCableStartId,
+              endObjectId: endObjectId,
+              color: '#10b981', // Emerald green for signal default
+              type: 'signal'
+          };
+
+          return {
+              cables: [...state.cables, newCable],
+              pendingCableStartId: null
+          };
+      });
+  },
+
+  cancelCable: () => set({ pendingCableStartId: null }),
+
+  removeCable: (id) => {
+      get().pushHistory();
+      set((state) => ({
+          cables: state.cables.filter(c => c.id !== id)
+      }));
+  },
 
   addMeasurement: (measurement) => {
       get().pushHistory();
@@ -352,10 +374,11 @@ export const useStore = create<AppState>((set, get) => ({
       ...state,
       objects: data.objects || state.objects,
       layers: data.layers || state.layers,
+      cables: data.cables || [],
       measurements: data.measurements || [],
       cameraTarget: data.cameraTarget || state.cameraTarget,
       lightingPreset: data.lightingPreset || state.lightingPreset,
-      history: { past: [], future: [] }, // Reset history on load
+      history: { past: [], future: [] },
       selectedIds: [],
       activeTool: 'select',
       activePlacementAsset: null

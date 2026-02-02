@@ -1,10 +1,43 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
-import { Html, Line } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store';
 import { v4 as uuidv4 } from 'uuid';
 import { X } from 'lucide-react';
+import { snapVector } from '../../utils/snapping';
+
+// Custom Line component to replace problematic Drei Line
+const TapeLine = ({ start, end, color, dashed }: { start: THREE.Vector3, end: THREE.Vector3, color: string, dashed?: boolean }) => {
+    const lineRef = useRef<THREE.Line>(null);
+    
+    // Create geometry using useMemo
+    const geometry = useMemo(() => {
+        return new THREE.BufferGeometry().setFromPoints([start, end]);
+    }, [start, end]);
+
+    // Proper disposal
+    useEffect(() => {
+        return () => geometry.dispose();
+    }, [geometry]);
+
+    // Compute distances for dashed lines
+    useLayoutEffect(() => {
+        if (dashed && lineRef.current) {
+            lineRef.current.computeLineDistances();
+        }
+    }, [geometry, dashed]);
+
+    return (
+        <line ref={lineRef} geometry={geometry}>
+            {dashed ? (
+                <lineDashedMaterial color={color} dashSize={0.2} gapSize={0.2} />
+            ) : (
+                <lineBasicMaterial color={color} />
+            )}
+        </line>
+    );
+};
 
 export const TapeMeasure = () => {
     const activeTool = useStore(state => state.activeTool);
@@ -50,13 +83,9 @@ export const TapeMeasure = () => {
         
         const point = getIntersection();
         if (point) {
-            // Snapping Logic
-            if (snappingEnabled) {
-                point.x = Math.round(point.x * 4) / 4;
-                point.y = Math.round(point.y * 4) / 4;
-                point.z = Math.round(point.z * 4) / 4;
-            }
-            setCurrentPoint(point);
+            // USE CENTRALIZED SNAPPING
+            const snapped = snapVector(point, snappingEnabled);
+            setCurrentPoint(snapped);
         }
     };
 
@@ -121,10 +150,10 @@ export const TapeMeasure = () => {
                  
                  return (
                     <group key={m.id}>
-                        <Line 
-                            points={[start, end]} 
-                            color="#f59e0b" 
-                            lineWidth={2} 
+                        <TapeLine 
+                            start={start}
+                            end={end}
+                            color="#f59e0b"
                             dashed={false}
                         />
                          <mesh position={start}><sphereGeometry args={[0.03]} /><meshBasicMaterial color="#f59e0b" depthTest={false} /></mesh>
@@ -148,13 +177,11 @@ export const TapeMeasure = () => {
             {/* Active Drawing Line */}
             {activeTool === 'tape' && isDrawing && startPoint && currentPoint && (
                 <>
-                    <Line 
-                        points={[startPoint, currentPoint]} 
-                        color="#06b6d4" 
-                        lineWidth={2} 
+                    <TapeLine 
+                        start={startPoint}
+                        end={currentPoint}
+                        color="#06b6d4"
                         dashed={true}
-                        dashScale={10}
-                        dashSize={0.5}
                     />
                     <mesh position={startPoint}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#06b6d4" depthTest={false} /></mesh>
                     <mesh position={currentPoint}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#06b6d4" depthTest={false} /></mesh>

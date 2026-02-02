@@ -10,6 +10,8 @@ export const KeyboardManager = () => {
     const viewMode = useStore(state => state.viewMode);
     const undo = useStore(state => state.undo);
     const redo = useStore(state => state.redo);
+    const cancelCable = useStore(state => state.cancelCable);
+    const pendingCableStartId = useStore(state => state.pendingCableStartId);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,7 +39,14 @@ export const KeyboardManager = () => {
                 case 'v': setTool('select'); break;
                 case 'g': setTool('move'); break;
                 case 'r': setTool('rotate'); break;
-                case 'escape': clearSelection(); break;
+                case 'c': setTool('cable'); break; // Add Shortcut for Cable
+                case 'escape': 
+                    if (pendingCableStartId) {
+                        cancelCable();
+                    } else {
+                        clearSelection(); 
+                    }
+                    break;
                 case 'delete': 
                 case 'backspace':
                     selectedIds.forEach(id => removeObject(id));
@@ -48,7 +57,7 @@ export const KeyboardManager = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [setTool, setViewMode, removeObject, selectedIds, clearSelection, viewMode, undo, redo]);
+    }, [setTool, setViewMode, removeObject, selectedIds, clearSelection, viewMode, undo, redo, cancelCable, pendingCableStartId]);
 
     return null;
 };

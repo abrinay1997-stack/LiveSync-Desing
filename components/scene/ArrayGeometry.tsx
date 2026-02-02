@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { AssetGeometry } from './AssetGeometry';
-import { ArrayConfig, ASSETS } from '../../types';
+import { ArrayConfig } from '../../types';
+import { ASSETS } from '../../data/library';
 import { calculateArrayMechanicalShape, generateDispersionGeometry } from '../../utils/arrayMath';
 
 interface ArrayGeometryProps {

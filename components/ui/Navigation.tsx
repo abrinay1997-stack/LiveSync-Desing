@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useStore } from '../../store';
 import { 
     BoxSelect, Download, MousePointer2, Move, RotateCw, Grid, Monitor, Magnet, Search,
-    PanelLeft, PanelBottom, Settings2, Layers, Ruler, Tag, Cable, ChevronDown, Upload
+    PanelLeft, PanelBottom, Settings2, Layers, Ruler, Tag, Cable, ChevronDown, Upload, Eraser, Pencil
 } from 'lucide-react';
 
 export const TopBar = () => {
@@ -30,6 +30,7 @@ export const TopBar = () => {
             timestamp: new Date().toISOString(),
             objects: state.objects,
             layers: state.layers,
+            cables: state.cables,
             measurements: state.measurements,
             cameraTarget: state.cameraTarget,
             lightingPreset: state.lightingPreset
@@ -39,7 +40,7 @@ export const TopBar = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `aether-project-${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `livesync-design-${new Date().toISOString().slice(0,10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -73,7 +74,7 @@ export const TopBar = () => {
                     <div className="w-6 h-6 bg-gradient-to-br from-aether-accent to-blue-600 rounded flex items-center justify-center text-black">
                         <BoxSelect size={14} strokeWidth={3} />
                     </div>
-                    <span className="text-sm font-semibold tracking-wide text-gray-200">Aether<span className="text-gray-600 font-normal">CAD</span></span>
+                    <span className="text-sm font-semibold tracking-wide text-gray-200">LiveSync <span className="text-gray-600 font-normal">Desing</span></span>
                 </div>
                 
                 <div className="h-6 w-px bg-white/5"></div>
@@ -167,6 +168,8 @@ export const Toolbar = () => {
     const setViewMode = useStore(state => state.setViewMode);
     const snapping = useStore(state => state.snappingEnabled);
     const toggleSnapping = useStore(state => state.toggleSnapping);
+    const continuousPlacement = useStore(state => state.continuousPlacement);
+    const toggleContinuousPlacement = useStore(state => state.toggleContinuousPlacement);
     const visible = useStore(state => state.ui.showToolbar);
 
     if (!visible) return null;
@@ -177,10 +180,17 @@ export const Toolbar = () => {
                 <ToolButton icon={MousePointer2} active={activeTool === 'select'} onClick={() => setTool('select')} tooltip="Select (V)" />
                 <ToolButton icon={Move} active={activeTool === 'move'} onClick={() => setTool('move')} tooltip="Move (G)" />
                 <ToolButton icon={RotateCw} active={activeTool === 'rotate'} onClick={() => setTool('rotate')} tooltip="Rotate (R)" />
+                
                 <div className="w-8 h-px bg-white/5 my-1 mx-auto"></div>
+                
+                <ToolButton icon={Pencil} active={continuousPlacement} onClick={toggleContinuousPlacement} tooltip="Pencil Mode (Continuous Place)" />
+                <ToolButton icon={Eraser} active={activeTool === 'eraser'} onClick={() => setTool('eraser')} tooltip="Eraser" />
+
+                <div className="w-8 h-px bg-white/5 my-1 mx-auto"></div>
+
                 <ToolButton icon={Ruler} active={activeTool === 'tape'} onClick={() => setTool('tape')} tooltip="Tape Measure" />
                 <ToolButton icon={Tag} active={activeTool === 'label'} onClick={() => setTool('label')} tooltip="Add Label" disabled={true} />
-                <ToolButton icon={Cable} active={activeTool === 'cable'} onClick={() => setTool('cable')} tooltip="Patch Cable" disabled={true} />
+                <ToolButton icon={Cable} active={activeTool === 'cable'} onClick={() => setTool('cable')} tooltip="Patch Cable" />
             </div>
 
             <div className="mt-auto bg-[#09090b]/90 backdrop-blur-md border border-white/5 rounded-2xl p-1 flex flex-col gap-1 shadow-2xl">

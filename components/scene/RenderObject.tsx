@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { TransformControls, Edges } from '@react-three/drei';
+import { TransformControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../../store';
 import { SceneObject } from '../../types';
@@ -12,11 +12,33 @@ interface RenderObjectProps {
     showGizmo: boolean;
 }
 
+// Custom Edge Visualizer to replace Drei Edges which can be unstable with dynamic geometry
+const SelectionEdges = ({ geometry, color, opacity = 1, threshold = 15 }: { geometry: THREE.BufferGeometry, color: string, opacity?: number, threshold?: number }) => {
+    const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry, threshold), [geometry, threshold]);
+    
+    useEffect(() => {
+        return () => edgesGeometry.dispose();
+    }, [edgesGeometry]);
+
+    return (
+        <lineSegments geometry={edgesGeometry}>
+            <lineBasicMaterial color={color} opacity={opacity} transparent={opacity < 1} toneMapped={false} />
+        </lineSegments>
+    );
+};
+
 export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, showGizmo }) => {
   const selectObject = useStore(state => state.selectObject);
   const updateObject = useStore(state => state.updateObject);
+  const removeObject = useStore(state => state.removeObject);
+  
+  // Cable Actions
+  const startCable = useStore(state => state.startCable);
+  const completeCable = useStore(state => state.completeCable);
+  const pendingCableStartId = useStore(state => state.pendingCableStartId);
+  
   // We use this for final commits to history (onMouseUp)
-  // @ts-ignore - We know this exists from the store update but TS might lag behind without full restart
+  // @ts-ignore
   const updateObjectFinal = useStore(state => state.updateObjectFinal) || updateObject; 
   const activeTool = useStore(state => state.activeTool);
   const setCameraLocked = useStore(state => state.setCameraLocked);
@@ -28,12 +50,22 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
   const isSelectable = ['select', 'move', 'rotate'].includes(activeTool);
   const isTransformMode = isSelectable;
   const transformMode = activeTool === 'rotate' ? 'rotate' : 'translate';
+  const isEraser = activeTool === 'eraser';
+  const isCableTool = activeTool === 'cable';
 
   // Cursor pointer logic
   useEffect(() => {
+    if (isEraser) {
+        if (hovered) document.body.style.cursor = 'crosshair'; 
+        return;
+    }
+
+    if (isCableTool) {
+        if (hovered) document.body.style.cursor = 'alias'; // Show connection cursor
+        return;
+    }
+
     if (!isSelectable) {
-        // If we are in 'tape' or 'cable' mode, we might want crosshair, managed globally or by that tool
-        // RenderObject shouldn't force 'auto' if another tool wants 'crosshair'
         if (hovered && activeTool !== 'tape') document.body.style.cursor = 'not-allowed';
         return;
     }
@@ -41,17 +73,39 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
     if (hovered) document.body.style.cursor = 'pointer';
     else document.body.style.cursor = 'auto';
     return () => { document.body.style.cursor = 'auto'; }
-  }, [hovered, activeTool, isSelectable]);
+  }, [hovered, activeTool, isSelectable, isEraser, isCableTool]);
 
   const w = data.dimensions?.w || 1;
   const h = data.dimensions?.h || 1;
   const d = data.dimensions?.d || 1;
 
+  // Geometry for selection box (bounding box)
   const selectionGeometry = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d]);
 
   useEffect(() => {
     return () => selectionGeometry.dispose();
   }, [selectionGeometry]);
+
+  const handleInteraction = (e: any) => {
+      e.stopPropagation();
+
+      if (isEraser) {
+          removeObject(data.id);
+          return;
+      }
+
+      if (isCableTool) {
+          if (!pendingCableStartId) {
+              startCable(data.id);
+          } else {
+              completeCable(data.id);
+          }
+          return;
+      }
+
+      if (!isSelectable) return;
+      selectObject(data.id, e.shiftKey);
+  };
 
   return (
     <>
@@ -60,21 +114,13 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
             position={data.position}
             rotation={new THREE.Euler(...data.rotation)}
             scale={data.scale}
-            onClick={(e) => {
-                // Decoupled Logic: We only react if we are in a selection-compatible mode.
-                // We do NOT check for 'tape' specifically.
-                if (!isSelectable) return;
-
-                e.stopPropagation();
-                selectObject(data.id, e.shiftKey);
-            }}
+            onClick={handleInteraction}
             onPointerOver={(e) => {
-                if (!isSelectable) return;
+                if (!isSelectable && !isEraser && !isCableTool) return;
                 e.stopPropagation();
                 setHovered(true);
             }}
             onPointerOut={(e) => {
-                // Always clear hover
                 e.stopPropagation();
                 setHovered(false);
             }}
@@ -90,32 +136,48 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                 <AssetGeometry type={data.type} dimensions={data.dimensions} color={data.color} />
             )}
             
-            {(isSelected || (hovered && isSelectable)) && (
-                <mesh geometry={selectionGeometry} visible={false}>
-                    {isSelected && (
-                        <Edges 
+            {/* Hover/Selection Highlight */}
+            {(isSelected || (hovered && (isSelectable || isEraser || isCableTool))) && (
+                <group>
+                     {/* Selection Blue Outline */}
+                    {isSelected && !isEraser && !isCableTool && (
+                        <SelectionEdges 
                             geometry={selectionGeometry}
-                            scale={1.0} 
-                            threshold={15} 
                             color="#06b6d4" 
                         />
                     )}
 
-                    {hovered && !isSelected && (
-                        <Edges 
+                    {/* Hover White Outline */}
+                    {hovered && !isSelected && !isEraser && !isCableTool && (
+                        <SelectionEdges 
                             geometry={selectionGeometry}
-                            scale={1.0} 
-                            threshold={15} 
                             color="#ffffff" 
                             opacity={0.3}
-                            transparent
                         />
                     )}
-                </mesh>
+
+                    {/* Eraser Red Outline */}
+                    {hovered && isEraser && (
+                        <SelectionEdges 
+                            geometry={selectionGeometry}
+                            color="#ef4444" 
+                            opacity={0.8}
+                        />
+                    )}
+                    
+                    {/* Cable Green Outline */}
+                    {hovered && isCableTool && (
+                        <SelectionEdges 
+                            geometry={selectionGeometry}
+                            color="#10b981" 
+                            opacity={0.8}
+                        />
+                    )}
+                </group>
             )}
         </group>
 
-        {showGizmo && isTransformMode && objectRef.current && (
+        {showGizmo && isTransformMode && !isEraser && !isCableTool && objectRef.current && (
             <TransformControls
                 object={objectRef.current}
                 mode={transformMode}
@@ -127,18 +189,11 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                     if (objectRef.current) {
                         const { position, rotation } = objectRef.current;
                         
-                        // Use updateObjectFinal to commit to history only when drag ends
                         updateObjectFinal(data.id, {
                             position: [position.x, position.y, position.z],
                             rotation: [rotation.x, rotation.y, rotation.z]
                         });
                     }
-                }}
-                onChange={() => {
-                    // While dragging, update without history (transient)
-                    // We don't trigger store updates here to avoid React render loop lag, 
-                    // relying on TransformControls internal visual update.
-                    // But if we wanted UI to update live, we would use updateObject here.
                 }}
             />
         )}
