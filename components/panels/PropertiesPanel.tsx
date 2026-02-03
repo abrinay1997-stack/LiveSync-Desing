@@ -8,21 +8,22 @@ import { TransformInspector } from '../inspectors/TransformInspector';
 import { GeometryInspector } from '../inspectors/GeometryInspector';
 import { ArrayInspector } from '../inspectors/ArrayInspector';
 import { AcousticInspector } from '../inspectors/AcousticInspector';
+import { RiggingInspector } from '../inspectors/RiggingInspector';
 
 // --- MAIN PANEL ---
 
 export const PropertiesPanel = () => {
     const selectedIds = useStore(state => state.selectedIds);
     const objects = useStore(state => state.objects);
-    
+
     // Now explicitly typed in store interface, no fallback needed
     const updateObjectFinal = useStore(state => state.updateObjectFinal);
-    
+
     const removeObject = useStore(state => state.removeObject);
     const cloneObject = useStore(state => state.cloneObject);
     const lightingPreset = useStore(state => state.lightingPreset);
     const setLightingPreset = useStore(state => state.setLightingPreset);
-    
+
     const selection = objects.filter(o => selectedIds.includes(o.id));
     const singleSelection = selection.length === 1 ? selection[0] : null;
 
@@ -32,7 +33,7 @@ export const PropertiesPanel = () => {
     // --- STATE: NO SELECTION (GLOBAL SETTINGS) ---
     if (selection.length === 0) return (
         <div className="p-4 space-y-6">
-             <div className="flex items-center gap-3 pb-4 border-b border-white/5">
+            <div className="flex items-center gap-3 pb-4 border-b border-white/5">
                 <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-gray-400">
                     <Globe size={18} />
                 </div>
@@ -45,14 +46,13 @@ export const PropertiesPanel = () => {
             <Section title="Lighting & Environment">
                 <div className="grid grid-cols-3 gap-2">
                     {['studio', 'stage', 'outdoor'].map((preset) => (
-                        <button 
+                        <button
                             key={preset}
                             onClick={() => setLightingPreset(preset as LightingPreset)}
-                            className={`flex flex-col items-center justify-center p-3 rounded border transition-all ${
-                                lightingPreset === preset 
-                                ? 'bg-aether-accent/10 border-aether-accent/50 text-aether-accent' 
+                            className={`flex flex-col items-center justify-center p-3 rounded border transition-all ${lightingPreset === preset
+                                ? 'bg-aether-accent/10 border-aether-accent/50 text-aether-accent'
                                 : 'bg-black/20 border-white/5 text-gray-500 hover:bg-white/5 hover:text-white'
-                            }`}
+                                }`}
                         >
                             <Sun size={16} className="mb-2" />
                             <span className="text-[10px] capitalize">{preset}</span>
@@ -86,8 +86,8 @@ export const PropertiesPanel = () => {
                         <BoxSelect size={18} />
                     </div>
                     <div className="flex flex-col">
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             value={singleSelection?.name || 'Multiple Objects'}
                             onChange={(e) => singleSelection && handleUpdate(singleSelection.id, { name: e.target.value })}
                             disabled={selection.length > 1}
@@ -108,22 +108,25 @@ export const PropertiesPanel = () => {
                     {isArrayCapable && <ArrayInspector object={singleSelection} onUpdate={handleUpdate} />}
                     {(singleSelection.type === 'speaker' || singleSelection.type === 'sub') && <AcousticInspector object={singleSelection} />}
 
+                    {/* RIGGING CALCULATOR (shows for any selection with motors/trusses) */}
+                    <RiggingInspector />
+
                     {/* ACTIONS */}
                     <div className="pt-4 mt-2">
-                         <div className="grid grid-cols-2 gap-2">
-                             <button 
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
                                 onClick={() => cloneObject(singleSelection.id)}
                                 className="py-2 bg-white/5 border border-white/5 text-gray-300 text-xs rounded hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2"
-                             >
+                            >
                                 <Plus size={12} /> Clone
-                             </button>
-                             <button 
+                            </button>
+                            <button
                                 onClick={() => removeObject(singleSelection.id)}
                                 className="col-span-1 py-2 bg-red-500/5 border border-red-500/10 text-red-400 text-xs rounded hover:bg-red-500/20 transition flex items-center justify-center gap-2"
                             >
                                 <Trash2 size={12} /> Remove
-                             </button>
-                         </div>
+                            </button>
+                        </div>
                     </div>
                 </>
             )}
