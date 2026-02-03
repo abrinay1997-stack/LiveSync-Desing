@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      // Use '/LiveSync-Desing/' for GitHub Pages, '/' for Netlify/local
+      base: process.env.GITHUB_PAGES === 'true' ? '/LiveSync-Desing/' : '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -18,6 +20,10 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        outDir: 'dist',
+        sourcemap: false
       }
     };
 });
