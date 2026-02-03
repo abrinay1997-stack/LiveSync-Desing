@@ -4,9 +4,11 @@
  * UI controls for SPL coverage visualization
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useStore } from '../../store';
 import { Activity, Volume2, Waves } from 'lucide-react';
+import { ASSETS } from '../../data/library';
+import { FrequencyResponseChart } from './FrequencyResponseChart';
 
 export const AcousticControlPanel = () => {
     const showSPLCoverage = useStore(state => state.showSPLCoverage);
@@ -27,6 +29,23 @@ export const AcousticControlPanel = () => {
 
     const objects = useStore(state => state.objects);
     const speakerCount = objects.filter(o => o.type === 'speaker' || o.type === 'sub').length;
+
+    // Build frequency response data for chart
+    const SPEAKER_COLORS = ['#3b82f6', '#f59e0b', '#22c55e', '#ef4444', '#a855f7', '#06b6d4', '#ec4899', '#84cc16'];
+    const chartData = useMemo(() => {
+        return objects
+            .filter(o => o.type === 'speaker' || o.type === 'sub')
+            .map((obj, i) => {
+                const asset = ASSETS[obj.model];
+                const freqResp = asset?.frequencyResponse;
+                return {
+                    label: asset?.name || obj.model,
+                    color: SPEAKER_COLORS[i % SPEAKER_COLORS.length],
+                    values: freqResp || {}
+                };
+            })
+            .filter(d => Object.keys(d.values).length > 0);
+    }, [objects]);
 
     return (
         <div className="p-4 space-y-4 border-t border-white/5">
@@ -127,6 +146,56 @@ export const AcousticControlPanel = () => {
                             ))}
                         </div>
                     </div>
+
+                    {/* Advanced Acoustics Toggles */}
+                    <div className="space-y-2">
+                        <label className="text-xs text-gray-400 block">Advanced Acoustics</label>
+                        <div className="flex flex-col gap-1.5">
+                            <button
+                                onClick={toggleReflections}
+                                className={`flex items-center justify-between px-3 py-1.5 rounded text-xs transition-all ${showReflections
+                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-white/5 text-gray-500 border border-white/10 hover:bg-white/10'
+                                    }`}
+                            >
+                                <span>Room Reflections</span>
+                                <span className={`text-[10px] font-mono ${showReflections ? 'text-emerald-400' : 'text-gray-600'}`}>
+                                    {showReflections ? 'ON' : 'OFF'}
+                                </span>
+                            </button>
+                            <button
+                                onClick={toggleOcclusion}
+                                className={`flex items-center justify-between px-3 py-1.5 rounded text-xs transition-all ${showOcclusion
+                                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                    : 'bg-white/5 text-gray-500 border border-white/10 hover:bg-white/10'
+                                    }`}
+                            >
+                                <span>Obstacle Occlusion</span>
+                                <span className={`text-[10px] font-mono ${showOcclusion ? 'text-amber-400' : 'text-gray-600'}`}>
+                                    {showOcclusion ? 'ON' : 'OFF'}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Frequency Response Chart */}
+                    {chartData.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t border-white/5">
+                            <div className="text-xs text-gray-400">Frequency Response</div>
+                            <div className="bg-white/[0.02] rounded border border-white/5 p-1">
+                                <FrequencyResponseChart data={chartData} />
+                            </div>
+                            {/* Legend */}
+                            <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                {chartData.map((d, i) => (
+                                    <div key={i} className="flex items-center gap-1">
+                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+                                        <span className="text-[9px] text-gray-500">{d.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* SPL Legend */}
                     {showSPLCoverage && (

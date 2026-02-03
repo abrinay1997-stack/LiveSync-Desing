@@ -41,6 +41,12 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     power: 2000,
     maxSplay: 10,
     isLineArray: true,
+    frequencyResponse: {
+      125: 135, 250: 142, 500: 146, 1000: 147, 2000: 146, 4000: 144, 8000: 140
+    },
+    directivityByFreq: {
+      125: { h: 140, v: 70 }, 500: { h: 120, v: 25 }, 1000: { h: 110, v: 10 }, 4000: { h: 90, v: 8 }
+    },
     impedance: 16,
     rmsPower: 1000,
     peakPower: 2000,
@@ -84,7 +90,13 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     weight: 79,
     maxSPL: 143,
     dispersion: { h: 360, v: 360 },
-    isLineArray: true
+    isLineArray: true,
+    frequencyResponse: {
+      125: 143, 250: 138, 500: 120, 1000: 105, 2000: 95, 4000: 85, 8000: 75
+    },
+    directivityByFreq: {
+      125: { h: 360, v: 360 }, 500: { h: 360, v: 360 }, 1000: { h: 300, v: 300 }, 4000: { h: 240, v: 240 }
+    }
   },
 
   // --- MEDIUM FORMAT ---
@@ -98,7 +110,13 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     maxSPL: 142,
     dispersion: { h: 110, v: 10 },
     maxSplay: 10,
-    isLineArray: true
+    isLineArray: true,
+    frequencyResponse: {
+      125: 128, 250: 135, 500: 140, 1000: 142, 2000: 141, 4000: 139, 8000: 134
+    },
+    directivityByFreq: {
+      125: { h: 140, v: 60 }, 500: { h: 120, v: 20 }, 1000: { h: 110, v: 10 }, 4000: { h: 95, v: 7 }
+    }
   },
   'la-sb18': {
     name: 'SB18 Sub',
@@ -108,7 +126,13 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     description: 'Compact 18" sub',
     weight: 52,
     maxSPL: 138,
-    dispersion: { h: 360, v: 360 }
+    dispersion: { h: 360, v: 360 },
+    frequencyResponse: {
+      125: 138, 250: 134, 500: 118, 1000: 102, 2000: 90, 4000: 80, 8000: 70
+    },
+    directivityByFreq: {
+      125: { h: 360, v: 360 }, 500: { h: 360, v: 360 }, 1000: { h: 300, v: 300 }, 4000: { h: 240, v: 240 }
+    }
   },
 
   // --- COLUMN / INSTALL ---
@@ -120,7 +144,13 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     description: 'Colinear Source',
     weight: 21,
     maxSPL: 137,
-    dispersion: { h: 140, v: 26 }
+    dispersion: { h: 140, v: 26 },
+    frequencyResponse: {
+      125: 122, 250: 130, 500: 135, 1000: 137, 2000: 136, 4000: 133, 8000: 128
+    },
+    directivityByFreq: {
+      125: { h: 160, v: 60 }, 500: { h: 150, v: 30 }, 1000: { h: 140, v: 26 }, 4000: { h: 120, v: 20 }
+    }
   },
   'la-syva-low': {
     name: 'Syva Low',
@@ -128,7 +158,15 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     dimensions: { w: 0.33, h: 0.85, d: 0.35 },
     color: '#18181b',
     description: 'High Power Sub',
-    weight: 29
+    weight: 29,
+    maxSPL: 132,
+    dispersion: { h: 360, v: 360 },
+    frequencyResponse: {
+      125: 132, 250: 128, 500: 112, 1000: 98, 2000: 88, 4000: 78, 8000: 68
+    },
+    directivityByFreq: {
+      125: { h: 360, v: 360 }, 500: { h: 360, v: 360 }, 1000: { h: 300, v: 300 }, 4000: { h: 240, v: 240 }
+    }
   },
 
   // --- MONITORS ---
@@ -140,7 +178,13 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     description: 'Active Stage Monitor',
     weight: 21,
     maxSPL: 138,
-    dispersion: { h: 40, v: 60 }
+    dispersion: { h: 40, v: 60 },
+    frequencyResponse: {
+      125: 124, 250: 131, 500: 136, 1000: 138, 2000: 137, 4000: 135, 8000: 130
+    },
+    directivityByFreq: {
+      125: { h: 80, v: 100 }, 500: { h: 50, v: 70 }, 1000: { h: 40, v: 60 }, 4000: { h: 30, v: 45 }
+    }
   },
   'la-x12': {
     name: 'X12 Monitor',
@@ -150,6 +194,12 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     description: 'Multi-purpose',
     weight: 20,
     maxSPL: 136,
-    dispersion: { h: 90, v: 60 }
+    dispersion: { h: 90, v: 60 },
+    frequencyResponse: {
+      125: 122, 250: 129, 500: 134, 1000: 136, 2000: 135, 4000: 133, 8000: 128
+    },
+    directivityByFreq: {
+      125: { h: 130, v: 100 }, 500: { h: 100, v: 70 }, 1000: { h: 90, v: 60 }, 4000: { h: 70, v: 45 }
+    }
   }
 };

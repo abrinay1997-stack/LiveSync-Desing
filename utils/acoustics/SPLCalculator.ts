@@ -15,7 +15,7 @@ import {
     OCTAVE_BANDS,
     type MultiBandSPLResult
 } from './frequencyAnalysis';
-import { calculateAllReflections, combineDirectAndReflectedSPL, createDefaultRoom } from './reflections';
+import { calculateAllReflections, combineDirectAndReflectedSPL, createDefaultRoom, type ReflectionSurface } from './reflections';
 import { checkMultipleObstacles, applyOcclusion, type Obstacle } from './occlusion';
 
 export interface SPLContribution {
@@ -35,21 +35,34 @@ export interface SPLResult {
     interferenceType: 'constructive' | 'destructive' | 'none';
 }
 
-// Temporary: Global room and obstacles for MVP
-// In a real app these would come from the store/scene
+// Default room and obstacles (used when no scene data is provided)
 const DEFAULT_ROOM = createDefaultRoom();
-const DEFAULT_OBSTACLES: Obstacle[] = []; // Populate if we had scene data
+const DEFAULT_OBSTACLES: Obstacle[] = [];
+
+export interface AcousticEnvironment {
+    room?: ReflectionSurface[];
+    obstacles?: Obstacle[];
+}
 
 /**
  * Calculate total SPL at a point from multiple speakers
  * Uses Phase 4 Advanced Acoustics engine
+ *
+ * @param targetPoint - Measurement position
+ * @param speakers - Array of speakers with specs
+ * @param frequency - Analysis frequency (0 = A-weighted composite)
+ * @param options - Feature toggles for reflections/occlusion
+ * @param environment - Optional dynamic room surfaces and obstacles from scene
  */
 export function calculateTotalSPL(
     targetPoint: Vector3,
     speakers: Array<{ id: string; spec: SpeakerSpec }>,
     frequency: number = 1000,
-    options: { showReflections?: boolean; showOcclusion?: boolean } = { showReflections: true, showOcclusion: true }
+    options: { showReflections?: boolean; showOcclusion?: boolean } = { showReflections: true, showOcclusion: true },
+    environment?: AcousticEnvironment
 ): SPLResult {
+    const room = environment?.room ?? DEFAULT_ROOM;
+    const obstacles = environment?.obstacles ?? DEFAULT_OBSTACLES;
     const contributions: SPLContribution[] = [];
     const isComposite = frequency <= 0; // 0 or -1 means composite A-weighted
 
@@ -88,7 +101,7 @@ export function calculateTotalSPL(
             const occlusion = checkMultipleObstacles(
                 spec.position,
                 targetPoint,
-                DEFAULT_OBSTACLES,
+                obstacles,
                 checkFreq as any
             );
 
@@ -107,7 +120,7 @@ export function calculateTotalSPL(
             const reflections = calculateAllReflections(
                 spec.position,
                 targetPoint,
-                DEFAULT_ROOM,
+                room,
                 checkFreq as any
             );
 
