@@ -7,6 +7,7 @@
 
 const GRAVITY = 9.81; // m/s²
 const DYNAMIC_FACTOR = 1.5; // BGV-C1 dynamic load multiplier
+const DESIGN_FACTOR = 5; // Standard design factor for rigging (Breaking Load / WLL)
 
 export interface RiggingPoint {
     id: string;
@@ -164,12 +165,12 @@ export function calculateLoadDistribution(params: LoadDistributionParams): LoadD
         .map(p => p.capacity!));
 
     const maxLoad = Math.max(...results.map(r => r.dynamicLoad));
-    const safetyFactor = minCapacity ? minCapacity / maxLoad : 0;
+    const safetyFactor = minCapacity ? (minCapacity * DESIGN_FACTOR) / maxLoad : 0;
 
-    const safe = safetyFactor >= 5 && maxUtilization <= 100;
+    const safe = safetyFactor >= DESIGN_FACTOR && maxUtilization <= 100;
 
-    if (safetyFactor < 5 && safetyFactor > 0) {
-        warnings.push(`Overall safety factor ${safetyFactor.toFixed(2)}:1 below BGV-C1 requirement (5:1)`);
+    if (safetyFactor < DESIGN_FACTOR && safetyFactor > 0) {
+        warnings.push(`Overall safety factor ${safetyFactor.toFixed(2)}:1 below BGV-C1 requirement (${DESIGN_FACTOR}:1)`);
     }
 
     return {
