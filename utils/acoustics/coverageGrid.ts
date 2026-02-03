@@ -6,7 +6,7 @@
 
 import { Vector3 } from 'three';
 import type { SpeakerSpec } from './raycast';
-import { calculateTotalSPL, type SPLResult } from './SPLCalculator';
+import { calculateTotalSPL, type SPLResult, type AcousticEnvironment } from './SPLCalculator';
 
 export interface CoveragePoint {
     position: Vector3;
@@ -28,6 +28,7 @@ export interface CoverageGridParams {
     frequency: number;   // Hz for calculations
     showReflections?: boolean;
     showOcclusion?: boolean;
+    environment?: AcousticEnvironment;
 }
 
 export interface CoverageGrid {
@@ -84,7 +85,7 @@ export function generateCoverageGrid(
             const splResult = calculateTotalSPL(position, speakers, frequency, {
                 showReflections: params.showReflections,
                 showOcclusion: params.showOcclusion
-            });
+            }, params.environment);
             const spl = splResult.totalSPL;
 
             // Evaluate quality
