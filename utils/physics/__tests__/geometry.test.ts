@@ -46,14 +46,14 @@ describe('Geometric Analysis', () => {
         expect(tension1.magnitude).toBeCloseTo(weight * 9.81, 1);
         expect(tension1.angle).toBe(0);
 
-        // 45°: T = W × g / cos(45°) ≈ 1.41 × W × g
+        // 45°: T = W × g / cos(45°) ≈ 1.414 × W × g
         const tension2 = calculateTensionVector(
             { x: 0, y: 10, z: 0 },
             { x: 5, y: 5, z: 0 },
             weight,
             1
         );
-        expect(tension2.magnitude).toBeCloseTo(weight * 9.81 * 1.41, 10);
+        expect(tension2.magnitude).toBeCloseTo(weight * 9.81 * Math.SQRT2, 1);
         expect(tension2.angle).toBeCloseTo(45, 1);
     });
 
