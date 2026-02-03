@@ -63,23 +63,24 @@ describe('Load Distribution Calculations', () => {
             loads: [
                 {
                     id: 'speaker1',
-                    weight: 600, // 600kg total
+                    weight: 250, // 250kg total - safe load for 5:1 factor
                     position: [2.5, 5, 0],
                     attachedTo: ['motor1', 'motor2']
                 }
             ]
         });
 
-        expect(result.totalWeight).toBe(600);
+        expect(result.totalWeight).toBe(250);
         expect(result.pointLoads.length).toBe(2);
 
-        // Each motor should hold ~300kg static (600/2)
-        // With 1.5x dynamic factor = 450kg
-        expect(result.pointLoads[0].staticLoad).toBe(300);
-        expect(result.pointLoads[0].dynamicLoad).toBe(450);
-        expect(result.pointLoads[0].utilization).toBe(45); // 450/1000 * 100
+        // Each motor should hold ~125kg static (250/2)
+        // With 1.5x dynamic factor = 187.5kg
+        expect(result.pointLoads[0].staticLoad).toBe(125);
+        expect(result.pointLoads[0].dynamicLoad).toBe(187.5);
+        expect(result.pointLoads[0].utilization).toBeCloseTo(18.75, 1); // 187.5/1000 * 100
 
-        expect(result.safe).toBe(true); // 450kg < 1000kg WLL
+        // BGV-C1 requires 5:1 safety factor: 1000kg WLL / 187.5kg = 5.33:1 ✓
+        expect(result.safe).toBe(true);
         expect(result.safetyFactor).toBeGreaterThanOrEqual(5);
     });
 
