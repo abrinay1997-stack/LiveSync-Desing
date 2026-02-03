@@ -70,4 +70,8 @@ export interface AssetDefinition {
   maxSplay?: number;
   isLineArray?: boolean; // New flag for auto-configuration
   isResizable?: boolean; // Allows W/D/H modification in Inspector
+
+  // Multi-frequency support (Phase 4)
+  frequencyResponse?: Partial<Record<125 | 250 | 500 | 1000 | 2000 | 4000 | 8000, number>>;
+  directivityByFreq?: Partial<Record<125 | 250 | 500 | 1000 | 2000 | 4000 | 8000, { h: number; v: number }>>;
 }

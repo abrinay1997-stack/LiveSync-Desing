@@ -13,7 +13,13 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     dispersion: { h: 90, v: 5 },
     power: 3600,
     maxSplay: 5,
-    isLineArray: true
+    isLineArray: true,
+    frequencyResponse: {
+      125: 138, 250: 144, 500: 148, 1000: 149, 2000: 148, 4000: 146, 8000: 142
+    },
+    directivityByFreq: {
+      125: { h: 140, v: 80 }, 500: { h: 100, v: 20 }, 1000: { h: 90, v: 5 }, 4000: { h: 80, v: 4 }
+    }
   },
   'la-k2': {
     name: 'K2 Line Source',
@@ -39,7 +45,13 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     dispersion: { h: 110, v: 10 },
     power: 1200,
     maxSplay: 10,
-    isLineArray: true
+    isLineArray: true,
+    frequencyResponse: {
+      125: 130, 250: 137, 500: 141, 1000: 143, 2000: 142, 4000: 140, 8000: 136
+    },
+    directivityByFreq: {
+      125: { h: 140, v: 50 }, 500: { h: 120, v: 25 }, 1000: { h: 110, v: 10 }, 4000: { h: 100, v: 8 }
+    }
   },
   'la-ks28': {
     name: 'KS28 Subwoofer',
