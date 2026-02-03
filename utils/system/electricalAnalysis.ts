@@ -12,6 +12,9 @@ export function calculateParallelImpedance(speakers: number[]): number {
     return 1 / sumInverse;
 }
 
+// Alias for UI components
+export const calculateChannelImpedance = calculateParallelImpedance;
+
 /**
  * Calculates dB headroom based on amp power and speaker ratings
  */
