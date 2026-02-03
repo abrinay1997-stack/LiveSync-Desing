@@ -26,6 +26,8 @@ export interface CoverageGridParams {
     resolution: number;  // meters between points
     height: number;      // Y coordinate (measurement height)
     frequency: number;   // Hz for calculations
+    showReflections?: boolean;
+    showOcclusion?: boolean;
 }
 
 export interface CoverageGrid {
@@ -79,7 +81,10 @@ export function generateCoverageGrid(
             );
 
             // Calculate SPL at this point
-            const splResult = calculateTotalSPL(position, speakers, frequency);
+            const splResult = calculateTotalSPL(position, speakers, frequency, {
+                showReflections: params.showReflections,
+                showOcclusion: params.showOcclusion
+            });
             const spl = splResult.totalSPL;
 
             // Evaluate quality

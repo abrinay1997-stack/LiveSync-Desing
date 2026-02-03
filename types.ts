@@ -1,9 +1,22 @@
 import { Vector3, Euler } from 'three';
 import React from 'react';
 
+// System Engineering Types
 export type ViewMode = 'perspective' | 'top' | 'side';
 export type ToolType = 'select' | 'move' | 'rotate' | 'tape' | 'label' | 'cable' | 'eraser';
-export type AssetType = 'speaker' | 'sub' | 'bumper' | 'truss' | 'motor' | 'stage' | 'audience';
+
+export type PortType = 'xlr' | 'speakon' | 'powercon' | 'ethercon' | 'generic';
+export type PortDirection = 'in' | 'out' | 'bi';
+
+export interface PortDefinition {
+  id: string;
+  name: string;
+  type: PortType;
+  direction: PortDirection;
+  label?: string; // e.g. "Ch 1" or "Link Out"
+}
+
+export type AssetType = 'speaker' | 'sub' | 'bumper' | 'truss' | 'motor' | 'stage' | 'audience' | 'amplifier' | 'processor' | 'console';
 
 export interface ArrayConfig {
   enabled: boolean;
@@ -29,14 +42,23 @@ export interface SceneObject {
 
   // Audio Engineering Data
   arrayConfig?: ArrayConfig;
+
+  // Phase 6: System State
+  // We might store patch state here or in a separate Connection Store
+  // For now, let's assume cables define the state, but objects might need override settings
+  customLabel?: string;
 }
 
 export interface Cable {
   id: string;
   startObjectId: string;
+  startPortId?: string; // Phase 6: Specific port
   endObjectId: string;
+  endPortId?: string;   // Phase 6: Specific port
   color: string;
   type: 'signal' | 'power' | 'network';
+  length?: number;      // Calculated length
+  slack?: number;       // Extra length for draping
 }
 
 export interface Layer {
@@ -65,7 +87,21 @@ export interface AssetDefinition {
   capacity?: number; // Working Load Limit (WLL) in kg, for rigging equipment
   maxSPL?: number; // dB
   dispersion?: { h: number; v: number }; // degrees
-  power?: number; // Watts
+  power?: number; // Watts (General consumption or capacity)
+
+  // Phase 6: Electrical & Connectivity
+  impedance?: number;     // Ohms (Nominal)
+  rmsPower?: number;      // Watts (Continuous)
+  peakPower?: number;     // Watts (Peak)
+  ports?: PortDefinition[]; // Connectivity points
+
+  // Amplifier Specifics
+  channels?: number;
+  powerAt4Ohms?: number;  // Watts per channel
+  powerAt8Ohms?: number;  // Watts per channel
+
+  // Restrictions
+
   // Restrictions
   maxSplay?: number;
   isLineArray?: boolean; // New flag for auto-configuration

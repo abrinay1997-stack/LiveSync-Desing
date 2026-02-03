@@ -6,7 +6,7 @@
 
 import { Vector3 } from 'three';
 
-const SPEED_OF_SOUND = 343; // m/s at 20°C
+export const SPEED_OF_SOUND = 343; // m/s at 20°C
 
 export interface AcousticRay {
     origin: Vector3;
@@ -26,6 +26,10 @@ export interface SpeakerSpec {
         vertical: number;   // degrees
     };
     power: number;          // Watts
+
+    // Phase 4 enhancements
+    frequencyResponse?: Record<number, number>;
+    directivityByFreq?: Record<number, { horizontal: number; vertical: number }>;
 }
 
 /**

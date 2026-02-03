@@ -82,18 +82,43 @@ export function calculateFrequencyDependentSPL(
     const airAbs = getAirAbsorption(frequency);
     spl -= airAbs * distance;
 
-    // Directivity (simplified)
+    // Directivity (Enhanced Phase 4 Model)
+    // 1. Calculate off-axis angle relative to coverage pattern
+    // Ideally we would project angle onto H/V planes, but for MVP we use simplified components
+    // Assuming simple orientation where speaker faces -Z
+
+    // Decompose angle into H/V components (simplified estimation)
+    // We treat the total angle as if it were applying to both axes for worst-case, 
+    // or we could split it. For now, let's assume the angle applies purely to the narrower dimension
+    // to be safe, or use a comprehensive approach.
+
+    // Better approach: Use the passed dispersion directivity directly
+    // The dispersion param already comes from getInterpolatedDirectivity if integrated upstream,
+    // or we calculate it here.
+
+    // For off-axis attenuation we now use the Gaussian model from directivity.ts
+    // We import it dynamically or copy logic to avoid circular deps if structure is rigid,
+    // but better to import.
+
     const avgDispersion = (dispersion.horizontal + dispersion.vertical) / 2;
     const halfAngle = avgDispersion / 2;
 
-    if (angle > halfAngle) {
-        const angleRatio = angle / halfAngle;
-        const angleAttenuation = 6 * Math.log2(angleRatio);
-        spl -= angleAttenuation;
+    if (angle > 0) {
+        // Gaussian approximation: Att = 6 * (angle / halfAngle)^2
+        const u = angle / halfAngle;
+        const attenuation = 6 * Math.pow(u, 2);
+
+        // Cap at -30dB for realism (leakage)
+        spl -= Math.min(attenuation, 30);
     }
 
     return Math.max(spl, 0);
 }
+
+/**
+ * Calculate multi-band SPL at target point from single speaker
+ */
+import { getInterpolatedDirectivity, type DirectivityMap } from './directivity';
 
 /**
  * Calculate multi-band SPL at target point from single speaker
@@ -103,7 +128,8 @@ export function calculateMultiBandSPLFromSpeaker(
     targetPosition: Vector3,
     speakerMaxSPL: number | Record<OctaveBand, number>,
     dispersion: { horizontal: number; vertical: number },
-    bands: readonly OctaveBand[] = OCTAVE_BANDS
+    bands: readonly OctaveBand[] = OCTAVE_BANDS,
+    directivityMap?: DirectivityMap
 ): MultiBandSPLResult {
     const distance = speakerPosition.distanceTo(targetPosition);
 
@@ -127,12 +153,19 @@ export function calculateMultiBandSPLFromSpeaker(
             maxSPLForBand = speakerMaxSPL[freq] ?? speakerMaxSPL[1000] ?? 120;
         }
 
+        // Get frequency-specific dispersion
+        const bandDispersion = getInterpolatedDirectivity(
+            freq,
+            directivityMap,
+            dispersion
+        );
+
         const spl = calculateFrequencyDependentSPL(
             distance,
             maxSPLForBand,
             freq,
             angle,
-            dispersion
+            bandDispersion
         );
 
         bandSPLs.set(freq, spl);

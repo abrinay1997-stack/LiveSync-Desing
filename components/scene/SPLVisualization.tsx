@@ -16,6 +16,9 @@ export const SPLVisualization = () => {
     const showSPLCoverage = useStore(state => state.showSPLCoverage);
     const splMeasurementHeight = useStore(state => state.splMeasurementHeight || 1.7); // default 1.7m (ear height)
     const splResolution = useStore(state => state.splResolution || 1.0); // default 1m grid
+    const splFrequency = useStore(state => state.splFrequency || 1000);
+    const showReflections = useStore(state => state.showReflections);
+    const showOcclusion = useStore(state => state.showOcclusion);
 
     // Get all speakers in scene
     const speakers = useMemo(() => {
@@ -50,7 +53,9 @@ export const SPLVisualization = () => {
             },
             resolution: splResolution,
             height: splMeasurementHeight,
-            frequency: 1000 // 1kHz center frequency
+            frequency: splFrequency || 1000, // Use selected frequency
+            showReflections: showReflections,
+            showOcclusion: showOcclusion
         };
 
         return generateCoverageGrid(params, speakers);

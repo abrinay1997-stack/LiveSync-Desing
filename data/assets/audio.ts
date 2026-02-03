@@ -19,7 +19,15 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     },
     directivityByFreq: {
       125: { h: 140, v: 80 }, 500: { h: 100, v: 20 }, 1000: { h: 90, v: 5 }, 4000: { h: 80, v: 4 }
-    }
+    },
+    // Phase 6: System Specs
+    impedance: 8, // Nominal
+    rmsPower: 1800,
+    peakPower: 3600,
+    ports: [
+      { id: 'in', name: 'Input', type: 'speakon', direction: 'in', label: 'NL8 In' },
+      { id: 'link', name: 'Link', type: 'speakon', direction: 'out', label: 'NL8 Link' }
+    ]
   },
   'la-k2': {
     name: 'K2 Line Source',
@@ -32,7 +40,14 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     dispersion: { h: 110, v: 10 },
     power: 2000,
     maxSplay: 10,
-    isLineArray: true
+    isLineArray: true,
+    impedance: 16,
+    rmsPower: 1000,
+    peakPower: 2000,
+    ports: [
+      { id: 'in', name: 'Input', type: 'speakon', direction: 'in', label: 'NL4 In' },
+      { id: 'link', name: 'Link', type: 'speakon', direction: 'out', label: 'NL4 Link' }
+    ]
   },
   'la-k3': {
     name: 'K3 Long Throw',
@@ -51,7 +66,14 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     },
     directivityByFreq: {
       125: { h: 140, v: 50 }, 500: { h: 120, v: 25 }, 1000: { h: 110, v: 10 }, 4000: { h: 100, v: 8 }
-    }
+    },
+    impedance: 8,
+    rmsPower: 600,
+    peakPower: 1200,
+    ports: [
+      { id: 'in', name: 'Input', type: 'speakon', direction: 'in', label: 'NL4 In' },
+      { id: 'link', name: 'Link', type: 'speakon', direction: 'out', label: 'NL4 Link' }
+    ]
   },
   'la-ks28': {
     name: 'KS28 Subwoofer',
