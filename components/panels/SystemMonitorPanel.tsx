@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useStore } from '../../store';
 import { ASSETS } from '../../data/library';
-import { calculateChannelImpedance, calculateHeadroom } from '../../utils/system/electricalAnalysis';
+import { calculateParallelImpedance, calculateHeadroom } from '../../utils/system/electricalAnalysis';
 import { AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 
 export const SystemMonitorPanel = () => {
@@ -41,7 +41,7 @@ export const SystemMonitorPanel = () => {
             });
 
             // Calculate total Z
-            const totalZ = calculateChannelImpedance(loads); // Parallel
+            const totalZ = calculateParallelImpedance(loads); // Parallel
 
             // Check headroom
             // Taking max RMS of connected speakers? Or sum?

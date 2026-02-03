@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { useMemo, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { Grid, ContactShadows, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import { useStore } from '../store';
 import { RenderObject } from './scene/RenderObject';
@@ -11,6 +11,22 @@ import { StageEnvironment } from './scene/StageEnvironment';
 import { InstancedRigging } from './scene/InstancedRigging';
 import { CatenaryVisualization } from './scene/CatenaryVisualization';
 import { SPLVisualization } from './scene/SPLVisualization';
+import { GroundPlane } from './scene/GroundPlane';
+import { registerRenderer, unregisterRenderer } from '../utils/export/screenshotExport';
+
+/**
+ * Helper component to register the WebGL renderer for screenshots
+ */
+const RendererRegistration = () => {
+    const { gl } = useThree();
+
+    useEffect(() => {
+        registerRenderer(gl);
+        return () => unregisterRenderer();
+    }, [gl]);
+
+    return null;
+};
 
 export const Scene3D = () => {
   const objects = useStore(state => state.objects);
@@ -40,7 +56,8 @@ export const Scene3D = () => {
 
   return (
     <div className="w-full h-full bg-[#09090b]">
-      <Canvas shadows dpr={[1, 2]} onPointerMissed={clearSelection}>
+      <Canvas shadows dpr={[1, 2]} onPointerMissed={clearSelection} gl={{ preserveDrawingBuffer: true }}>
+        <RendererRegistration />
         <ViewportController />
         <StageEnvironment />
 
@@ -57,6 +74,7 @@ export const Scene3D = () => {
           position={[0, -0.01, 0]}
         />
 
+        <GroundPlane />
         <GhostObject />
         <TapeMeasure />
         <CableRenderer />

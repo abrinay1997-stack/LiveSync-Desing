@@ -16,6 +16,10 @@ export const createUISlice: StoreSlice<import('../types').UISlice> = (set) => ({
     showReflections: true,       // Default: On
     showOcclusion: true,         // Default: On
 
+    // Visual helpers
+    showGroundPlane: true,       // Default: Show ground reference
+    showObjectLabels: false,     // Default: Labels off
+
     toggleUI: (element) => set((state) => ({
         ui: { ...state.ui, [element]: !state.ui[element] }
     })),
@@ -34,4 +38,8 @@ export const createUISlice: StoreSlice<import('../types').UISlice> = (set) => ({
 
     toggleReflections: () => set((state) => ({ showReflections: !state.showReflections })),
     toggleOcclusion: () => set((state) => ({ showOcclusion: !state.showOcclusion })),
+
+    // Visual helper toggles
+    toggleGroundPlane: () => set((state) => ({ showGroundPlane: !state.showGroundPlane })),
+    toggleObjectLabels: () => set((state) => ({ showObjectLabels: !state.showObjectLabels })),
 });

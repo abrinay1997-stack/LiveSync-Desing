@@ -2,6 +2,7 @@
  * Unit Tests for Multi-Frequency Analysis
  */
 
+import { describe, test, expect } from 'vitest';
 import {
     OCTAVE_BANDS,
     getAirAbsorption,

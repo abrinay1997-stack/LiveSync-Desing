@@ -5,6 +5,7 @@ import { useStore } from '../../store';
 import { SceneObject } from '../../types';
 import { AssetGeometry } from './AssetGeometry';
 import { ArrayGeometry } from './ArrayGeometry';
+import { HeightIndicator } from './HeightIndicator';
 
 interface RenderObjectProps {
     data: SceneObject;
@@ -44,6 +45,8 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
   
   const objectRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPosition, setDragPosition] = useState<[number, number, number]>(data.position);
 
   // Logic Decoupling: Defines if the object allows selection based on tool state
   const isSelectable = ['select', 'move', 'rotate'].includes(activeTool);
@@ -182,20 +185,36 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                 mode={transformMode}
                 space="local"
                 size={0.8}
-                onMouseDown={() => setCameraLocked(true)}
+                onMouseDown={() => {
+                    setCameraLocked(true);
+                    setIsDragging(true);
+                }}
                 onMouseUp={() => {
                     setCameraLocked(false);
+                    setIsDragging(false);
                     if (objectRef.current) {
                         const { position, rotation } = objectRef.current;
-                        
+
                         updateObjectFinal(data.id, {
                             position: [position.x, position.y, position.z],
                             rotation: [rotation.x, rotation.y, rotation.z]
                         });
                     }
                 }}
+                onChange={() => {
+                    if (objectRef.current && isDragging) {
+                        const { position } = objectRef.current;
+                        setDragPosition([position.x, position.y, position.z]);
+                    }
+                }}
             />
         )}
+
+        {/* Height indicator during dragging */}
+        <HeightIndicator
+            position={isDragging ? dragPosition : data.position}
+            visible={isDragging && transformMode === 'translate'}
+        />
     </>
   );
 };
