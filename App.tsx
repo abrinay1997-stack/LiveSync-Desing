@@ -1,8 +1,12 @@
 import React from 'react';
 import { Scene3D } from './components/Scene3D';
 import { Interface } from './components/Interface';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 const App = () => {
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts();
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-aether-900 select-none">
         {/* 3D Viewport Layer */}
