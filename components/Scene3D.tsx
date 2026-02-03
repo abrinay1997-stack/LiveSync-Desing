@@ -10,6 +10,7 @@ import { CableRenderer } from './scene/CableRenderer';
 import { StageEnvironment } from './scene/StageEnvironment';
 import { InstancedRigging } from './scene/InstancedRigging';
 import { CatenaryVisualization } from './scene/CatenaryVisualization';
+import { SPLVisualization } from './scene/SPLVisualization';
 
 export const Scene3D = () => {
   const objects = useStore(state => state.objects);
@@ -60,6 +61,7 @@ export const Scene3D = () => {
         <TapeMeasure />
         <CableRenderer />
         <CatenaryVisualization />
+        <SPLVisualization />
 
         {/* High Performance Batch Renderer for static Truss/Motors */}
         <InstancedRigging />

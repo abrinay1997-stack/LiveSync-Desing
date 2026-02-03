@@ -11,18 +11,20 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     weight: 106,
     maxSPL: 149,
     dispersion: { h: 90, v: 5 },
+    power: 3600,
     maxSplay: 5,
     isLineArray: true
   },
   'la-k2': {
     name: 'K2 Line Source',
     type: 'speaker',
-    dimensions: { w: 1.33, h: 0.35, d: 0.40 }, 
+    dimensions: { w: 1.33, h: 0.35, d: 0.40 },
     color: '#27272a',
     description: 'Active WST® system',
     weight: 56,
     maxSPL: 147,
     dispersion: { h: 110, v: 10 },
+    power: 2000,
     maxSplay: 10,
     isLineArray: true
   },
@@ -35,6 +37,7 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     weight: 43,
     maxSPL: 143,
     dispersion: { h: 110, v: 10 },
+    power: 1200,
     maxSplay: 10,
     isLineArray: true
   },
@@ -49,7 +52,7 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     dispersion: { h: 360, v: 360 },
     isLineArray: true
   },
-  
+
   // --- MEDIUM FORMAT ---
   'la-kara2': {
     name: 'Kara II',
@@ -73,7 +76,7 @@ export const AUDIO_ASSETS: Record<string, AssetDefinition> = {
     maxSPL: 138,
     dispersion: { h: 360, v: 360 }
   },
-  
+
   // --- COLUMN / INSTALL ---
   'la-syva': {
     name: 'Syva Colinear',
