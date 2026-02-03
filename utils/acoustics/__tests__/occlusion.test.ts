@@ -2,6 +2,7 @@
  * Unit Tests for Obstacle Occlusion
  */
 
+import { describe, test, expect } from 'vitest';
 import { Vector3, Box3 } from 'three';
 import {
     createObstacle,

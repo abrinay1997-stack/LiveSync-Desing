@@ -1,3 +1,4 @@
+import { AssetDefinition } from '../types';
 import { AUDIO_ASSETS } from './assets/audio';
 import { RIGGING_ASSETS } from './assets/rigging';
 import { VENUE_ASSETS } from './assets/venue';

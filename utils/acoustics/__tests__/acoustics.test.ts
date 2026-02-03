@@ -2,6 +2,7 @@
  * Unit Tests for Acoustic Simulation
  */
 
+import { describe, test, expect } from 'vitest';
 import { castAcousticRay, calculateWavelength } from '../raycast';
 import { calculateTotalSPL } from '../SPLCalculator';
 import { generateCoverageGrid } from '../coverageGrid';

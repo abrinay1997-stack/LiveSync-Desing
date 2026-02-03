@@ -2,6 +2,7 @@
  * Unit Tests for Room Reflections
  */
 
+import { describe, test, expect } from 'vitest';
 import { Vector3, Plane } from 'three';
 import {
     createDefaultRoom,

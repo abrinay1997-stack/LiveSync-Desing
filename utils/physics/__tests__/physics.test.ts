@@ -1,9 +1,10 @@
 /**
  * Unit Tests for Physics Calculations
- * 
+ *
  * Run with: npm test
  */
 
+import { describe, test, expect } from 'vitest';
 import { calculateCatenary, validateCableSafety } from '../catenary';
 import { calculateLoadDistribution } from '../loadDistribution';
 

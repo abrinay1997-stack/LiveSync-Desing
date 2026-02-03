@@ -1,3 +1,4 @@
+import { describe, test, expect } from 'vitest';
 import { ASSETS } from '../library';
 
 const OCTAVE_BANDS = [125, 250, 500, 1000, 2000, 4000, 8000] as const;

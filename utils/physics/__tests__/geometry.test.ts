@@ -2,6 +2,7 @@
  * Additional Unit Tests for Geometric Analysis
  */
 
+import { describe, test, expect } from 'vitest';
 import { calculateAngleFromVertical, calculateTensionVector, validateRiggingAngle } from '../geometry';
 import {
     calculateUniformLoadDeflection,

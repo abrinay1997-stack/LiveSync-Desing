@@ -1,3 +1,4 @@
+import { describe, test, expect } from 'vitest';
 import { Vector3 } from 'three';
 import { snapValue, snapVector, snapCoords } from '../snapping';
 

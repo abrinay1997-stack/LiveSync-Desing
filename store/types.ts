@@ -35,7 +35,7 @@ export interface HistorySlice {
 export interface UISlice {
     ui: UIState;
     toggleUI: (element: keyof Omit<UIState, 'activeRightTab'>) => void;
-    setRightTab: (tab: 'inspector' | 'layers') => void;
+    setRightTab: (tab: 'inspector' | 'layers' | 'patch') => void;
 
     // SPL Visualization
     showSPLCoverage: boolean;
@@ -45,12 +45,18 @@ export interface UISlice {
     showReflections: boolean;
     showOcclusion: boolean;
 
+    // Visual helpers
+    showGroundPlane: boolean;
+    showObjectLabels: boolean;
+
     toggleSPLCoverage: () => void;
     setSPLMeasurementHeight: (height: number) => void;
     setSPLResolution: (resolution: number) => void;
     setSPLFrequency: (frequency: number) => void;
     toggleReflections: () => void;
     toggleOcclusion: () => void;
+    toggleGroundPlane: () => void;
+    toggleObjectLabels: () => void;
 }
 
 export interface InteractionSlice {

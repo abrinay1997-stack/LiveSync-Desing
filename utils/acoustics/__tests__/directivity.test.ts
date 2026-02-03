@@ -2,6 +2,7 @@
  * Unit Tests for Enhanced Directivity
  */
 
+import { describe, test, expect } from 'vitest';
 import { Vector3 } from 'three';
 import {
     calculateLineArrayCoupling,
