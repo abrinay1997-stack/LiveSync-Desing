@@ -12,6 +12,7 @@ import { InstancedRigging } from './scene/InstancedRigging';
 import { CatenaryVisualization } from './scene/CatenaryVisualization';
 import { SPLVisualization } from './scene/SPLVisualization';
 import { GroundPlane } from './scene/GroundPlane';
+import { ConnectionPointsOverlay } from './scene/ConnectionPointsOverlay';
 import { registerRenderer, unregisterRenderer } from '../utils/export/screenshotExport';
 
 /**
@@ -76,6 +77,7 @@ export const Scene3D = () => {
 
         <GroundPlane />
         <GhostObject />
+        <ConnectionPointsOverlay />
         <TapeMeasure />
         <CableRenderer />
         <CatenaryVisualization />
