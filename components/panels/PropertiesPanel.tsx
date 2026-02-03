@@ -9,6 +9,7 @@ import { GeometryInspector } from '../inspectors/GeometryInspector';
 import { ArrayInspector } from '../inspectors/ArrayInspector';
 import { AcousticInspector } from '../inspectors/AcousticInspector';
 import { RiggingInspector } from '../inspectors/RiggingInspector';
+import { AcousticControlPanel } from './AcousticControlPanel';
 
 // --- MAIN PANEL ---
 
@@ -130,6 +131,9 @@ export const PropertiesPanel = () => {
                     </div>
                 </>
             )}
+
+            {/* ACOUSTIC COVERAGE CONTROLS - Always visible */}
+            <AcousticControlPanel />
         </div>
     )
 };
