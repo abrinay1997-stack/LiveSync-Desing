@@ -9,7 +9,14 @@
 
 import { Vector3 } from 'three';
 import type { SpeakerSpec } from './raycast';
-import { castAcousticRay, calculateWavelength } from './raycast';
+import { calculateWavelength, SPEED_OF_SOUND } from './raycast';
+import {
+    calculateMultiBandSPLFromSpeaker,
+    OCTAVE_BANDS,
+    type MultiBandSPLResult
+} from './frequencyAnalysis';
+import { calculateAllReflections, combineDirectAndReflectedSPL, createDefaultRoom } from './reflections';
+import { checkMultipleObstacles, applyOcclusion, type Obstacle } from './occlusion';
 
 export interface SPLContribution {
     speakerId: string;
@@ -17,6 +24,8 @@ export interface SPLContribution {
     distance: number;      // meters
     arrivalTime: number;   // seconds
     phase: number;         // degrees (0-360)
+    isOccluded?: boolean;
+    reflections?: number;  // gain from reflections
 }
 
 export interface SPLResult {
@@ -26,34 +35,107 @@ export interface SPLResult {
     interferenceType: 'constructive' | 'destructive' | 'none';
 }
 
-const SPEED_OF_SOUND = 343; // m/s
+// Temporary: Global room and obstacles for MVP
+// In a real app these would come from the store/scene
+const DEFAULT_ROOM = createDefaultRoom();
+const DEFAULT_OBSTACLES: Obstacle[] = []; // Populate if we had scene data
 
 /**
  * Calculate total SPL at a point from multiple speakers
+ * Uses Phase 4 Advanced Acoustics engine
  */
 export function calculateTotalSPL(
     targetPoint: Vector3,
     speakers: Array<{ id: string; spec: SpeakerSpec }>,
-    frequency: number = 1000
+    frequency: number = 1000,
+    options: { showReflections?: boolean; showOcclusion?: boolean } = { showReflections: true, showOcclusion: true }
 ): SPLResult {
     const contributions: SPLContribution[] = [];
+    const isComposite = frequency <= 0; // 0 or -1 means composite A-weighted
 
-    // Calculate contribution from each speaker
+    // Iterate over speakers
     speakers.forEach(({ id, spec }) => {
-        const ray = castAcousticRay(spec, targetPoint, frequency);
-        const distance = spec.position.distanceTo(targetPoint);
-        const arrivalTime = distance / SPEED_OF_SOUND;
+        // 1. Calculate Multi-Band SPL (Direct Sound)
+        // This handles distance, air absorption, and directivity
+        const mbResult = calculateMultiBandSPLFromSpeaker(
+            spec.position,
+            targetPoint,
+            spec.frequencyResponse || spec.maxSPL,
+            spec.dispersion,
+            OCTAVE_BANDS,
+            spec.directivityByFreq
+        );
 
-        // Calculate phase based on distance
-        const wavelength = calculateWavelength(frequency);
+        // Determine base SPL for requested frequency
+        let baseSPL: number;
+        if (isComposite) {
+            baseSPL = mbResult.aWeighted;
+        } else {
+            // Find closest band or interpolate? For now use closest band
+            // If freq is not exact octave, maybe interpolate, but for grid usually we pick standard bands
+            // @ts-ignore
+            baseSPL = mbResult.bands.get(frequency as any) || 0;
+        }
+
+        // 2. Obstacle Occlusion
+        let spl = baseSPL;
+        let isOccluded = false;
+        let occlusionAtt = 0;
+
+        const checkFreq = isComposite ? 1000 : frequency;
+
+        if (options.showOcclusion) {
+            const occlusion = checkMultipleObstacles(
+                spec.position,
+                targetPoint,
+                DEFAULT_OBSTACLES,
+                checkFreq as any
+            );
+
+            if (occlusion.isOccluded) {
+                spl = applyOcclusion(baseSPL, occlusion);
+                isOccluded = true;
+                occlusionAtt = occlusion.attenuationDB;
+            }
+        }
+
+        // 3. Room Reflections
+        // Only if not fully occluded (simplified)
+        // And usually we add reflected energy to the total
+        let reflectionGain = 0;
+        if (options.showReflections && (!isOccluded || occlusionAtt < 10)) {
+            const reflections = calculateAllReflections(
+                spec.position,
+                targetPoint,
+                DEFAULT_ROOM,
+                checkFreq as any
+            );
+
+            // Calculate how much SPL reflections add
+            // This is complex for composite, so we approximate
+            const splWithReflections = combineDirectAndReflectedSPL(
+                spl,
+                reflections,
+                checkFreq as any
+            );
+
+            reflectionGain = splWithReflections - spl;
+            spl = splWithReflections;
+        }
+
+        // Calculate phase (for interference check)
+        const distance = spec.position.distanceTo(targetPoint);
+        const wavelength = calculateWavelength(isComposite ? 1000 : frequency);
         const phase = ((distance % wavelength) / wavelength) * 360;
 
         contributions.push({
             speakerId: id,
-            spl: ray.intensity,
+            spl,
             distance,
-            arrivalTime,
-            phase
+            arrivalTime: distance / SPEED_OF_SOUND,
+            phase,
+            isOccluded: isOccluded,
+            reflections: reflectionGain
         });
     });
 
@@ -99,14 +181,14 @@ function combineSPL(contributions: SPLContribution[]): {
 
     let totalSPL = 10 * Math.log10(linearSum);
 
-    // Apply interference effects
+    // Apply interference effects (Simplified)
+    // Only apply if looking at specific low frequency, not composite
+    // Interference is less relevant for A-weighted composite of noise/music
     if (hasInterference) {
         if (interferenceType === 'constructive') {
-            // Slight boost (already accounted for in linear sum, but can add emphasis)
-            totalSPL += 0.5; // Small boost
+            totalSPL += 0.5;
         } else if (interferenceType === 'destructive') {
-            // Significant reduction
-            totalSPL -= 3; // 3dB reduction for destructive interference
+            totalSPL -= 3;
         }
     }
 

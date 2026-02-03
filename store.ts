@@ -4,6 +4,7 @@ import { createSceneSlice } from './store/slices/sceneSlice';
 import { createInteractionSlice } from './store/slices/interactionSlice';
 import { createUISlice } from './store/slices/uiSlice';
 import { createHistorySlice } from './store/slices/historySlice';
+import { createSystemSlice } from './store/slices/systemSlice';
 
 // Exports types for consumers
 export * from './store/types';
@@ -13,4 +14,5 @@ export const useStore = create<CombinedState>()((...a) => ({
   ...createSceneSlice(...a),
   ...createInteractionSlice(...a),
   ...createUISlice(...a),
+  ...createSystemSlice(...a),
 }));

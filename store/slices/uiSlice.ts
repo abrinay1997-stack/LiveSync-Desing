@@ -13,6 +13,8 @@ export const createUISlice: StoreSlice<import('../types').UISlice> = (set) => ({
     splMeasurementHeight: 1.7,  // 1.7m (ear height)
     splResolution: 1.0,          // 1m grid
     splFrequency: 1000,          // 1kHz
+    showReflections: true,       // Default: On
+    showOcclusion: true,         // Default: On
 
     toggleUI: (element) => set((state) => ({
         ui: { ...state.ui, [element]: !state.ui[element] }
@@ -29,4 +31,7 @@ export const createUISlice: StoreSlice<import('../types').UISlice> = (set) => ({
     setSPLMeasurementHeight: (height: number) => set({ splMeasurementHeight: height }),
     setSPLResolution: (resolution: number) => set({ splResolution: resolution }),
     setSPLFrequency: (frequency: number) => set({ splFrequency: frequency }),
+
+    toggleReflections: () => set((state) => ({ showReflections: !state.showReflections })),
+    toggleOcclusion: () => set((state) => ({ showOcclusion: !state.showOcclusion })),
 });

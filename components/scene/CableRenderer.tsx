@@ -13,7 +13,7 @@ interface CableSegmentProps {
 // Renders a single cable that stays connected to objects
 const CableSegment: React.FC<CableSegmentProps> = ({ startId, endId, color }) => {
     const objects = useStore(state => state.objects);
-    
+
     // Find objects in the store
     // Note: In a high-performance scenario, we might subscribe to individual object changes,
     // but for < 1000 objects, filtering on every render or using store selectors is acceptable in React Three Fiber
@@ -30,7 +30,7 @@ const CableSegment: React.FC<CableSegmentProps> = ({ startId, endId, color }) =>
     mid.y -= startPos.distanceTo(endPos) * 0.2; // Sag factor
 
     return (
-        <QuadraticBezierLine 
+        <QuadraticBezierLine
             start={startPos}
             end={endPos}
             mid={mid}
@@ -41,11 +41,12 @@ const CableSegment: React.FC<CableSegmentProps> = ({ startId, endId, color }) =>
 };
 
 export const CableRenderer = () => {
-    const cables = useStore(state => state.cables);
+    // Phase 6: Use system slice for cables
+    const cables = useStore(state => state.system.cables);
     const pendingCableStartId = useStore(state => state.pendingCableStartId);
     const objects = useStore(state => state.objects);
     const activeTool = useStore(state => state.activeTool);
-    
+
     const { raycaster, camera, scene, pointer } = useThree();
     const ghostEndRef = useRef(new THREE.Vector3());
     const ghostRef = useRef<any>(null);
@@ -53,34 +54,34 @@ export const CableRenderer = () => {
     // Update ghost line end point to follow mouse
     useFrame(() => {
         if (activeTool === 'cable' && pendingCableStartId) {
-             raycaster.setFromCamera(pointer, camera);
-             
-             // Intersect with a virtual plane at the start object's height or simple ground plane
-             // For better UX, we just project into space or hit other objects
-             const intersects = raycaster.intersectObjects(scene.children, true);
-             
-             let target = new THREE.Vector3();
-             const hit = intersects.find(i => i.object.type === 'Mesh' && !i.object.userData.isHelper);
-             
-             if (hit) {
-                 target.copy(hit.point);
-             } else {
-                 // Fallback plane
-                 const startObj = objects.find(o => o.id === pendingCableStartId);
-                 const y = startObj ? startObj.position[1] : 0;
-                 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -y);
-                 raycaster.ray.intersectPlane(plane, target);
-             }
+            raycaster.setFromCamera(pointer, camera);
 
-             ghostEndRef.current.copy(target);
-             
-             // Force update of the line if ref exists
-             if (ghostRef.current) {
-                 ghostRef.current.setPoints(
-                     new THREE.Vector3(...(objects.find(o => o.id === pendingCableStartId)!.position)),
-                     ghostEndRef.current
-                 );
-             }
+            // Intersect with a virtual plane at the start object's height or simple ground plane
+            // For better UX, we just project into space or hit other objects
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            let target = new THREE.Vector3();
+            const hit = intersects.find(i => i.object.type === 'Mesh' && !i.object.userData.isHelper);
+
+            if (hit) {
+                target.copy(hit.point);
+            } else {
+                // Fallback plane
+                const startObj = objects.find(o => o.id === pendingCableStartId);
+                const y = startObj ? startObj.position[1] : 0;
+                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -y);
+                raycaster.ray.intersectPlane(plane, target);
+            }
+
+            ghostEndRef.current.copy(target);
+
+            // Force update of the line if ref exists
+            if (ghostRef.current) {
+                ghostRef.current.setPoints(
+                    new THREE.Vector3(...(objects.find(o => o.id === pendingCableStartId)!.position)),
+                    ghostEndRef.current
+                );
+            }
         }
     });
 
@@ -90,11 +91,11 @@ export const CableRenderer = () => {
         <group>
             {/* Render saved cables */}
             {cables.map(cable => (
-                <CableSegment 
-                    key={cable.id} 
-                    startId={cable.startObjectId} 
-                    endId={cable.endObjectId} 
-                    color={cable.color} 
+                <CableSegment
+                    key={cable.id}
+                    startId={cable.startObjectId}
+                    endId={cable.endObjectId}
+                    color={cable.color}
                 />
             ))}
 

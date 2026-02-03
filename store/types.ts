@@ -8,7 +8,7 @@ export interface UIState {
     showToolbar: boolean;
     showLibrary: boolean;
     showInspector: boolean;
-    activeRightTab: 'inspector' | 'layers';
+    activeRightTab: 'inspector' | 'layers' | 'patch';
 }
 
 export interface ProjectData {
@@ -36,6 +36,21 @@ export interface UISlice {
     ui: UIState;
     toggleUI: (element: keyof Omit<UIState, 'activeRightTab'>) => void;
     setRightTab: (tab: 'inspector' | 'layers') => void;
+
+    // SPL Visualization
+    showSPLCoverage: boolean;
+    splMeasurementHeight: number;
+    splResolution: number;
+    splFrequency: number;
+    showReflections: boolean;
+    showOcclusion: boolean;
+
+    toggleSPLCoverage: () => void;
+    setSPLMeasurementHeight: (height: number) => void;
+    setSPLResolution: (resolution: number) => void;
+    setSPLFrequency: (frequency: number) => void;
+    toggleReflections: () => void;
+    toggleOcclusion: () => void;
 }
 
 export interface InteractionSlice {
@@ -97,8 +112,10 @@ export interface SceneSlice {
     loadProject: (data: Partial<CombinedState>) => void;
 }
 
+import { SystemSlice } from './slices/systemSlice';
+
 // The complete Store type
-export type CombinedState = SceneSlice & InteractionSlice & UISlice & HistorySlice;
+export type CombinedState = SceneSlice & InteractionSlice & UISlice & HistorySlice & SystemSlice;
 
 // Helper type for creating slices
 export type StoreSlice<T> = StateCreator<CombinedState, [], [], T>;

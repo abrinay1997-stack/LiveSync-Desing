@@ -19,6 +19,12 @@ export const AcousticControlPanel = () => {
     const setSPLResolution = useStore(state => state.setSPLResolution);
     const setSPLFrequency = useStore(state => state.setSPLFrequency);
 
+    // Feature toggles
+    const showReflections = useStore(state => state.showReflections);
+    const showOcclusion = useStore(state => state.showOcclusion);
+    const toggleReflections = useStore(state => state.toggleReflections);
+    const toggleOcclusion = useStore(state => state.toggleOcclusion);
+
     const objects = useStore(state => state.objects);
     const speakerCount = objects.filter(o => o.type === 'speaker' || o.type === 'sub').length;
 
@@ -33,8 +39,8 @@ export const AcousticControlPanel = () => {
                 <button
                     onClick={toggleSPLCoverage}
                     className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${showSPLCoverage
-                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                            : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
                         }`}
                     disabled={speakerCount === 0}
                 >
@@ -98,16 +104,25 @@ export const AcousticControlPanel = () => {
                     <div className="space-y-2">
                         <label className="text-xs text-gray-400 block">Analysis Frequency</label>
                         <div className="grid grid-cols-4 gap-1">
-                            {[500, 1000, 2000, 4000].map(freq => (
+                            <button
+                                onClick={() => setSPLFrequency?.(0)} // 0 = Composite
+                                className={`col-span-4 py-1.5 mb-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${splFrequency === 0
+                                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                    : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                                    }`}
+                            >
+                                Composite (A-Weighted)
+                            </button>
+                            {[125, 250, 500, 1000, 2000, 4000, 8000].map(freq => (
                                 <button
                                     key={freq}
                                     onClick={() => setSPLFrequency?.(freq)}
                                     className={`py-1.5 rounded text-[10px] font-mono transition-all ${splFrequency === freq
-                                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                            : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                        : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
                                         }`}
                                 >
-                                    {freq >= 1000 ? `${freq / 1000}k` : freq}Hz
+                                    {freq >= 1000 ? `${freq / 1000}k` : freq}
                                 </button>
                             ))}
                         </div>
