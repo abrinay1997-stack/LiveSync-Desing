@@ -5,3 +5,4 @@
  */
 
 export * from './connectionPoints';
+export * from './quickTools';
