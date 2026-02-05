@@ -99,6 +99,11 @@ export interface SceneSlice {
     updateObjectFinal: (id: string, updates: Partial<SceneObject>) => void;
     removeObject: (id: string) => void;
 
+    // Multi-selection batch operations
+    updateObjects: (ids: string[], updates: Partial<SceneObject>) => void;
+    updateObjectsWithTransform: (ids: string[], transformer: (obj: SceneObject) => Partial<SceneObject>) => void;
+    removeObjects: (ids: string[]) => void;
+
     // Layer Actions
     toggleLayerVisibility: (id: string) => void;
 

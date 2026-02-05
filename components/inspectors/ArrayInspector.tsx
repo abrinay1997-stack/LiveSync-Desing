@@ -102,14 +102,27 @@ export const ArrayInspector = ({ object, onUpdate }: { object: SceneObject, onUp
                             <div className="bg-black/30 rounded-lg p-2 border border-white/5">
                                 <span className="text-[10px] text-gray-500 block mb-1.5">Site Angle (Tilt)</span>
                                 <div className="flex items-center gap-1">
-                                    <NumericInput
+                                    <button
+                                        onClick={() => updateConfig({ siteAngle: object.arrayConfig!.siteAngle - 1 })}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-black/30 border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors"
+                                    >
+                                        <ChevronDown size={12} />
+                                    </button>
+                                    <input
+                                        type="number"
                                         value={object.arrayConfig.siteAngle}
-                                        onChange={(v) => updateConfig({ siteAngle: v })}
+                                        onChange={(e) => updateConfig({ siteAngle: parseFloat(e.target.value) || 0 })}
                                         step={0.5}
-                                        sensitivity={0.2}
+                                        className="flex-1 w-full text-center text-lg font-mono text-cyan-400 font-bold bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
-                                    <span className="text-[10px] text-gray-600">°</span>
+                                    <button
+                                        onClick={() => updateConfig({ siteAngle: object.arrayConfig!.siteAngle + 1 })}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-black/30 border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors"
+                                    >
+                                        <ChevronUp size={12} />
+                                    </button>
                                 </div>
+                                <span className="text-[9px] text-gray-600 block text-center mt-1">degrees</span>
                             </div>
                         </div>
 
