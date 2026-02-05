@@ -1,8 +1,10 @@
 import React from 'react';
+import * as THREE from 'three';
 import { SceneObject } from '../../types';
 import { NumericInput } from '../ui/NumericInput';
 import { Section } from './Section';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, ArrowDownToLine, AlertTriangle } from 'lucide-react';
+import { snapToGround, isObjectBelowGround } from '../../utils/construction';
 
 // Rotation presets in radians
 const ROTATION_PRESETS = [
@@ -20,6 +22,14 @@ export const TransformInspector = ({ object, onUpdate }: { object: SceneObject, 
     const isTruss = object.type === 'truss';
     const isRigging = isTruss || object.type === 'motor';
 
+    // Check if object is below ground
+    const dims = object.dimensions || { w: 1, h: 1, d: 1 };
+    const groundCheck = isObjectBelowGround(
+        new THREE.Vector3(...object.position),
+        dims,
+        new THREE.Euler(...object.rotation)
+    );
+
     // Quick rotation handler
     const setQuickRotation = (axis: 'x' | 'y' | 'z', value: number) => {
         const newRotation: [number, number, number] = [...object.rotation];
@@ -35,16 +45,46 @@ export const TransformInspector = ({ object, onUpdate }: { object: SceneObject, 
         onUpdate(object.id, { rotation: [object.rotation[0], newY, object.rotation[2]] });
     };
 
-    // Flip vertical (rotate 90° on X axis)
+    // Flip vertical (rotate 90° on Z axis for trusses)
     const flipVertical = () => {
-        const current = object.rotation[0];
-        const newX = Math.abs(current) < 0.01 ? Math.PI / 2 : 0;
-        onUpdate(object.id, { rotation: [newX, object.rotation[1], object.rotation[2]] });
+        const current = object.rotation[2];
+        const newZ = Math.abs(current - Math.PI / 2) < 0.01 ? 0 : Math.PI / 2;
+        onUpdate(object.id, { rotation: [object.rotation[0], object.rotation[1], newZ] });
+    };
+
+    // Snap object to ground
+    const handleSnapToGround = () => {
+        const pos = new THREE.Vector3(...object.position);
+        const rot = new THREE.Euler(...object.rotation);
+        const newPos = snapToGround(pos, dims, rot);
+        onUpdate(object.id, { position: [newPos.x, newPos.y, newPos.z] });
+    };
+
+    // Reset Y to 0
+    const resetToGround = () => {
+        const pos = new THREE.Vector3(...object.position);
+        const rot = new THREE.Euler(...object.rotation);
+        const newPos = snapToGround(pos, dims, rot);
+        onUpdate(object.id, { position: [object.position[0], newPos.y, object.position[2]] });
     };
 
     return (
         <Section title="Transform">
             <div className="grid grid-cols-1 gap-3">
+                {/* Below Ground Warning */}
+                {groundCheck.belowGround && (
+                    <div className="flex items-center gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-amber-400 text-[10px]">
+                        <AlertTriangle size={12} />
+                        <span>Object is {Math.abs(groundCheck.lowestPoint).toFixed(2)}m below ground</span>
+                        <button
+                            onClick={handleSnapToGround}
+                            className="ml-auto px-2 py-0.5 bg-amber-500/20 rounded text-amber-300 hover:bg-amber-500/30 transition-colors"
+                        >
+                            Fix
+                        </button>
+                    </div>
+                )}
+
                 <div>
                     <div className="text-[10px] text-gray-500 mb-1.5 flex justify-between">
                         <span>Position</span>
@@ -87,6 +127,17 @@ export const TransformInspector = ({ object, onUpdate }: { object: SceneObject, 
                     </div>
                 </div>
 
+                {/* Ground Alignment */}
+                <div className="border-t border-white/5 pt-3">
+                    <button
+                        onClick={handleSnapToGround}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-black/20 border border-white/10 rounded text-[10px] text-gray-400 hover:border-cyan-500/50 hover:text-cyan-400 transition-colors"
+                    >
+                        <ArrowDownToLine size={12} />
+                        Snap to Ground
+                    </button>
+                </div>
+
                 {/* Quick Rotation for Trusses and Rigging */}
                 {isRigging && (
                     <div className="border-t border-white/5 pt-3">
@@ -110,7 +161,7 @@ export const TransformInspector = ({ object, onUpdate }: { object: SceneObject, 
                             <button
                                 onClick={flipVertical}
                                 className={`px-2 py-1.5 text-[10px] rounded border transition-colors ${
-                                    Math.abs(object.rotation[0]) > 0.1
+                                    Math.abs(object.rotation[2] - Math.PI / 2) < 0.1
                                         ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400'
                                         : 'bg-black/20 border-white/10 text-gray-400 hover:border-white/30'
                                 }`}

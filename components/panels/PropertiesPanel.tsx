@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore, LightingPreset } from '../../store';
 import { ASSETS } from '../../data/library';
-import { BoxSelect, Plus, Trash2, Sun, Globe } from 'lucide-react';
+import { BoxSelect, Plus, Trash2, Sun, Globe, Layers } from 'lucide-react';
 
 import { Section } from '../inspectors/Section';
 import { TransformInspector } from '../inspectors/TransformInspector';
@@ -9,6 +9,7 @@ import { GeometryInspector } from '../inspectors/GeometryInspector';
 import { ArrayInspector } from '../inspectors/ArrayInspector';
 import { AcousticInspector } from '../inspectors/AcousticInspector';
 import { RiggingInspector } from '../inspectors/RiggingInspector';
+import { MultiSelectionInspector } from '../inspectors/MultiSelectionInspector';
 import { AcousticControlPanel } from './AcousticControlPanel';
 
 // --- MAIN PANEL ---
@@ -19,6 +20,8 @@ export const PropertiesPanel = () => {
 
     // Now explicitly typed in store interface, no fallback needed
     const updateObjectFinal = useStore(state => state.updateObjectFinal);
+    const updateObjectsWithTransform = useStore(state => state.updateObjectsWithTransform);
+    const removeObjects = useStore(state => state.removeObjects);
 
     const removeObject = useStore(state => state.removeObject);
     const cloneObject = useStore(state => state.cloneObject);
@@ -27,6 +30,7 @@ export const PropertiesPanel = () => {
 
     const selection = objects.filter(o => selectedIds.includes(o.id));
     const singleSelection = selection.length === 1 ? selection[0] : null;
+    const isMultiSelection = selection.length > 1;
 
     // Use updateObjectFinal for property panel edits (treating them as committed changes)
     const handleUpdate = updateObjectFinal;
@@ -83,22 +87,37 @@ export const PropertiesPanel = () => {
             {/* HEADER */}
             <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-2">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded flex items-center justify-center text-black" style={{ backgroundColor: singleSelection?.color || '#333' }}>
-                        <BoxSelect size={18} />
+                    <div className="w-8 h-8 rounded flex items-center justify-center text-black" style={{ backgroundColor: isMultiSelection ? '#06b6d4' : (singleSelection?.color || '#333') }}>
+                        {isMultiSelection ? <Layers size={18} /> : <BoxSelect size={18} />}
                     </div>
                     <div className="flex flex-col">
-                        <input
-                            type="text"
-                            value={singleSelection?.name || 'Multiple Objects'}
-                            onChange={(e) => singleSelection && handleUpdate(singleSelection.id, { name: e.target.value })}
-                            disabled={selection.length > 1}
-                            className="bg-transparent text-sm font-bold text-white focus:outline-none focus:border-b focus:border-aether-accent w-32"
-                        />
-                        <span className="text-[10px] text-aether-500 uppercase font-mono">{selection.length > 1 ? `${selection.length} Items` : singleSelection?.type}</span>
+                        {isMultiSelection ? (
+                            <span className="text-sm font-bold text-white">Multiple Objects</span>
+                        ) : (
+                            <input
+                                type="text"
+                                value={singleSelection?.name || 'Object'}
+                                onChange={(e) => singleSelection && handleUpdate(singleSelection.id, { name: e.target.value })}
+                                className="bg-transparent text-sm font-bold text-white focus:outline-none focus:border-b focus:border-aether-accent w-32"
+                            />
+                        )}
+                        <span className="text-[10px] text-aether-500 uppercase font-mono">
+                            {isMultiSelection ? `${selection.length} Items Selected` : singleSelection?.type}
+                        </span>
                     </div>
                 </div>
             </div>
 
+            {/* MULTI-SELECTION MODE */}
+            {isMultiSelection && (
+                <MultiSelectionInspector
+                    selection={selection}
+                    onUpdateTransform={updateObjectsWithTransform}
+                    onRemove={removeObjects}
+                />
+            )}
+
+            {/* SINGLE SELECTION MODE */}
             {singleSelection && (
                 <>
                     {/* STANDARD TRANSFORM */}

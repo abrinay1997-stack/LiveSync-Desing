@@ -104,6 +104,30 @@ export const createSceneSlice: StoreSlice<import('../types').SceneSlice> = (set,
         }))
     },
 
+    // Multi-selection batch operations
+    updateObjects: (ids, updates) => {
+        get().pushHistory();
+        set((state) => ({
+            objects: state.objects.map(o => ids.includes(o.id) ? { ...o, ...updates } : o)
+        }));
+    },
+
+    updateObjectsWithTransform: (ids, transformer) => {
+        get().pushHistory();
+        set((state) => ({
+            objects: state.objects.map(o => ids.includes(o.id) ? { ...o, ...transformer(o) } : o)
+        }));
+    },
+
+    removeObjects: (ids) => {
+        get().pushHistory();
+        set((state) => ({
+            objects: state.objects.filter(o => !ids.includes(o.id)),
+            cables: state.cables.filter(c => !ids.includes(c.startObjectId) && !ids.includes(c.endObjectId)),
+            selectedIds: state.selectedIds.filter(sid => !ids.includes(sid))
+        }));
+    },
+
     toggleLayerVisibility: (id) => set((state) => ({
         layers: state.layers.map(l => l.id === id ? { ...l, visible: !l.visible } : l)
     })),
