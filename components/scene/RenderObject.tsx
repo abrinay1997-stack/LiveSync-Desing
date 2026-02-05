@@ -183,7 +183,7 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
             <TransformControls
                 object={objectRef.current}
                 mode={transformMode}
-                space="local"
+                space={transformMode === 'rotate' ? 'world' : 'local'}
                 size={0.8}
                 onMouseDown={() => {
                     setCameraLocked(true);

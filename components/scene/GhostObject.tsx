@@ -87,11 +87,13 @@ export const GhostObject = () => {
 
         // --- 3. CONNECTION POINT SNAPPING (for trusses) ---
         if (template.type === 'truss' && snappingEnabled && connectionPoints.length > 0) {
-            const ghostPos = new THREE.Vector3(x, heightOffset, z);
-            const ghostRot = new THREE.Euler(0, 0, 0);
             const ghostDims = template.dimensions || { w: 1, h: 0.29, d: 0.29 };
 
-            const snapResult = calculateSnapToConnection(
+            // First, try standard horizontal snapping at ground level
+            const ghostPos = new THREE.Vector3(x, heightOffset, z);
+            const ghostRot = new THREE.Euler(0, 0, 0);
+
+            let snapResult = calculateSnapToConnection(
                 ghostPos,
                 ghostRot,
                 ghostDims,
@@ -99,12 +101,64 @@ export const GhostObject = () => {
                 0.8 // Snap threshold
             );
 
+            // If no snap found, check for nearby connection points at ANY height
+            // This enables vertical truss construction
+            if (!snapResult.snapped) {
+                const VERTICAL_SNAP_THRESHOLD = 1.5; // XZ distance to trigger vertical snap search
+
+                for (const cp of connectionPoints) {
+                    // Check XZ distance (ignore Y)
+                    const xzDist = Math.sqrt(
+                        Math.pow(cp.position.x - x, 2) +
+                        Math.pow(cp.position.z - z, 2)
+                    );
+
+                    if (xzDist < VERTICAL_SNAP_THRESHOLD) {
+                        // Try snapping at this connection point's height
+                        // Test both horizontal and vertical ghost orientations
+                        const testPositions = [
+                            // Horizontal ghost at connection point height
+                            { pos: new THREE.Vector3(x, cp.position.y, z), rot: new THREE.Euler(0, 0, 0) },
+                            // Vertical ghost (rotated 90° on Z)
+                            { pos: new THREE.Vector3(x, cp.position.y, z), rot: new THREE.Euler(0, 0, Math.PI / 2) },
+                            // Vertical ghost (rotated -90° on Z)
+                            { pos: new THREE.Vector3(x, cp.position.y, z), rot: new THREE.Euler(0, 0, -Math.PI / 2) },
+                        ];
+
+                        for (const test of testPositions) {
+                            const testResult = calculateSnapToConnection(
+                                test.pos,
+                                test.rot,
+                                ghostDims,
+                                connectionPoints,
+                                1.0 // Slightly larger threshold for vertical
+                            );
+
+                            if (testResult.snapped && (!snapResult.snapped || testResult.distance < snapResult.distance)) {
+                                snapResult = testResult;
+                            }
+                        }
+                    }
+                }
+            }
+
             if (snapResult.snapped) {
+                // Use FULL position including Y for vertical truss support
                 x = snapResult.position.x;
                 z = snapResult.position.z;
+                const y = snapResult.position.y;
                 rotation = [snapResult.rotation.x, snapResult.rotation.y, snapResult.rotation.z];
                 snappedToConnection = true;
                 targetPoint = snapResult.targetPoint || null;
+
+                // Update ghost state with correct Y position
+                setGhostState({
+                    position: [x, y, z],
+                    rotation,
+                    snappedToConnection,
+                    targetPoint
+                });
+                return;
             }
         }
 
