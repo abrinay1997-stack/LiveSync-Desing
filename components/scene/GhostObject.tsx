@@ -25,6 +25,7 @@ interface GhostState {
     rotation: [number, number, number];
     snappedToConnection: boolean;
     targetPoint: ConnectionPoint | null;
+    nearbyPoints: ConnectionPoint[]; // Show available connection points
 }
 
 export const GhostObject = () => {
@@ -86,77 +87,87 @@ export const GhostObject = () => {
         setSnapLines({ x: snappedX, z: snappedZ });
 
         // --- 3. CONNECTION POINT SNAPPING (for trusses) ---
+        let nearbyPoints: ConnectionPoint[] = [];
+
         if (template.type === 'truss' && snappingEnabled && connectionPoints.length > 0) {
             const ghostDims = template.dimensions || { w: 1, h: 0.29, d: 0.29 };
+            const NEARBY_THRESHOLD = 4.0; // Show nearby points within 4m XZ distance
+            const SNAP_THRESHOLD = 1.2; // Snap when within 1.2m of connection
 
-            // First, try standard horizontal snapping at ground level
-            const ghostPos = new THREE.Vector3(x, heightOffset, z);
-            const ghostRot = new THREE.Euler(0, 0, 0);
+            // Find all nearby connection points (for visual hints)
+            nearbyPoints = connectionPoints.filter(cp => {
+                const xzDist = Math.sqrt(
+                    Math.pow(cp.position.x - x, 2) +
+                    Math.pow(cp.position.z - z, 2)
+                );
+                return xzDist < NEARBY_THRESHOLD;
+            });
 
-            let snapResult = calculateSnapToConnection(
-                ghostPos,
-                ghostRot,
-                ghostDims,
-                connectionPoints,
-                0.8 // Snap threshold
-            );
+            // Try to find the best snap among all nearby points
+            let bestSnap = {
+                snapped: false,
+                position: new THREE.Vector3(x, heightOffset, z),
+                rotation: new THREE.Euler(0, 0, 0),
+                distance: Infinity,
+                targetPoint: null as ConnectionPoint | null
+            };
 
-            // If no snap found, check for nearby connection points at ANY height
-            // This enables vertical truss construction
-            if (!snapResult.snapped) {
-                const VERTICAL_SNAP_THRESHOLD = 1.5; // XZ distance to trigger vertical snap search
+            for (const cp of nearbyPoints) {
+                // Calculate multiple potential ghost positions for this connection point
+                const halfWidth = ghostDims.w / 2;
 
-                for (const cp of connectionPoints) {
-                    // Check XZ distance (ignore Y)
-                    const xzDist = Math.sqrt(
-                        Math.pow(cp.position.x - x, 2) +
-                        Math.pow(cp.position.z - z, 2)
+                // Test positions: placing ghost so its ends align with the connection point
+                const testConfigs = [
+                    // Horizontal orientations - ghost's left end at CP
+                    { pos: new THREE.Vector3(cp.position.x + halfWidth, cp.position.y, cp.position.z), rot: new THREE.Euler(0, 0, 0) },
+                    // Horizontal - ghost's right end at CP
+                    { pos: new THREE.Vector3(cp.position.x - halfWidth, cp.position.y, cp.position.z), rot: new THREE.Euler(0, 0, 0) },
+                    // Vertical down - ghost's top at CP (Z rotation 90°)
+                    { pos: new THREE.Vector3(cp.position.x, cp.position.y - halfWidth, cp.position.z), rot: new THREE.Euler(0, 0, Math.PI / 2) },
+                    // Vertical up - ghost's bottom at CP (Z rotation -90°)
+                    { pos: new THREE.Vector3(cp.position.x, cp.position.y + halfWidth, cp.position.z), rot: new THREE.Euler(0, 0, -Math.PI / 2) },
+                    // Rotated on Y axis variations
+                    { pos: new THREE.Vector3(cp.position.x, cp.position.y, cp.position.z + halfWidth), rot: new THREE.Euler(0, Math.PI / 2, 0) },
+                    { pos: new THREE.Vector3(cp.position.x, cp.position.y, cp.position.z - halfWidth), rot: new THREE.Euler(0, Math.PI / 2, 0) },
+                ];
+
+                for (const config of testConfigs) {
+                    // Check distance from mouse to this potential position (XZ only for usability)
+                    const xzDistToConfig = Math.sqrt(
+                        Math.pow(config.pos.x - x, 2) +
+                        Math.pow(config.pos.z - z, 2)
                     );
 
-                    if (xzDist < VERTICAL_SNAP_THRESHOLD) {
-                        // Try snapping at this connection point's height
-                        // Test both horizontal and vertical ghost orientations
-                        const testPositions = [
-                            // Horizontal ghost at connection point height
-                            { pos: new THREE.Vector3(x, cp.position.y, z), rot: new THREE.Euler(0, 0, 0) },
-                            // Vertical ghost (rotated 90° on Z)
-                            { pos: new THREE.Vector3(x, cp.position.y, z), rot: new THREE.Euler(0, 0, Math.PI / 2) },
-                            // Vertical ghost (rotated -90° on Z)
-                            { pos: new THREE.Vector3(x, cp.position.y, z), rot: new THREE.Euler(0, 0, -Math.PI / 2) },
-                        ];
+                    if (xzDistToConfig < SNAP_THRESHOLD) {
+                        // Verify this would actually snap
+                        const snapResult = calculateSnapToConnection(
+                            config.pos,
+                            config.rot,
+                            ghostDims,
+                            connectionPoints,
+                            1.5 // Generous threshold
+                        );
 
-                        for (const test of testPositions) {
-                            const testResult = calculateSnapToConnection(
-                                test.pos,
-                                test.rot,
-                                ghostDims,
-                                connectionPoints,
-                                1.0 // Slightly larger threshold for vertical
-                            );
-
-                            if (testResult.snapped && (!snapResult.snapped || testResult.distance < snapResult.distance)) {
-                                snapResult = testResult;
-                            }
+                        if (snapResult.snapped && snapResult.distance < bestSnap.distance) {
+                            bestSnap = {
+                                snapped: true,
+                                position: snapResult.position,
+                                rotation: snapResult.rotation,
+                                distance: snapResult.distance,
+                                targetPoint: snapResult.targetPoint || null
+                            };
                         }
                     }
                 }
             }
 
-            if (snapResult.snapped) {
-                // Use FULL position including Y for vertical truss support
-                x = snapResult.position.x;
-                z = snapResult.position.z;
-                const y = snapResult.position.y;
-                rotation = [snapResult.rotation.x, snapResult.rotation.y, snapResult.rotation.z];
-                snappedToConnection = true;
-                targetPoint = snapResult.targetPoint || null;
-
-                // Update ghost state with correct Y position
+            if (bestSnap.snapped) {
                 setGhostState({
-                    position: [x, y, z],
-                    rotation,
-                    snappedToConnection,
-                    targetPoint
+                    position: [bestSnap.position.x, bestSnap.position.y, bestSnap.position.z],
+                    rotation: [bestSnap.rotation.x, bestSnap.rotation.y, bestSnap.rotation.z],
+                    snappedToConnection: true,
+                    targetPoint: bestSnap.targetPoint,
+                    nearbyPoints
                 });
                 return;
             }
@@ -166,7 +177,8 @@ export const GhostObject = () => {
             position: [x, heightOffset, z],
             rotation,
             snappedToConnection,
-            targetPoint
+            targetPoint,
+            nearbyPoints
         });
     };
 
@@ -178,13 +190,30 @@ export const GhostObject = () => {
             const store = useStore.getState();
             store.pushHistory();
 
+            // Ensure object is not placed below ground
+            let finalPosition = [...ghostState.position] as [number, number, number];
+            const dims = template!.dimensions || { w: 1, h: 1, d: 1 };
+            const minY = dims.h / 2; // Minimum Y to keep object on ground
+
+            // For vertical objects, calculate proper minimum Y based on rotation
+            const rot = new THREE.Euler(...ghostState.rotation);
+            if (Math.abs(rot.z) > 0.1) {
+                // Object is tilted, use width as height consideration
+                const effectiveHeight = Math.max(dims.h, dims.w) / 2;
+                if (finalPosition[1] < effectiveHeight) {
+                    finalPosition[1] = effectiveHeight;
+                }
+            } else if (finalPosition[1] < minY) {
+                finalPosition[1] = minY;
+            }
+
             const existingCount = objects.filter(o => o.model === activePlacementAsset).length;
             const newObj = {
                 id: crypto.randomUUID(),
                 name: `${template!.name} ${existingCount + 1}`,
                 model: activePlacementAsset,
                 type: template!.type,
-                position: ghostState.position,
+                position: finalPosition,
                 rotation: ghostState.rotation,
                 scale: [1, 1, 1] as [number, number, number],
                 layerId: 'rigging',
@@ -281,6 +310,46 @@ export const GhostObject = () => {
                             <meshBasicMaterial color="#3b82f6" opacity={0.2} transparent />
                         </mesh>
                     )}
+                </group>
+            )}
+
+            {/* Show nearby connection points as visual hints */}
+            {ghostState && ghostState.nearbyPoints && ghostState.nearbyPoints.length > 0 && (
+                <group>
+                    {ghostState.nearbyPoints.map((cp, idx) => (
+                        <group key={cp.id} position={cp.position.toArray()}>
+                            {/* Pulsing sphere at connection point */}
+                            <mesh>
+                                <sphereGeometry args={[0.15, 16, 16]} />
+                                <meshBasicMaterial
+                                    color={ghostState.snappedToConnection && ghostState.targetPoint?.id === cp.id ? '#22c55e' : '#06b6d4'}
+                                    transparent
+                                    opacity={0.6}
+                                />
+                            </mesh>
+                            {/* Direction indicator */}
+                            <Line
+                                points={[
+                                    [0, 0, 0],
+                                    cp.direction.clone().multiplyScalar(0.5).toArray()
+                                ]}
+                                color={ghostState.snappedToConnection && ghostState.targetPoint?.id === cp.id ? '#22c55e' : '#f59e0b'}
+                                lineWidth={3}
+                            />
+                            {/* Vertical guide line to ground */}
+                            <Line
+                                points={[
+                                    [0, 0, 0],
+                                    [0, -cp.position.y, 0]
+                                ]}
+                                color="#06b6d4"
+                                lineWidth={1}
+                                dashed
+                                dashSize={0.2}
+                                gapSize={0.1}
+                            />
+                        </group>
+                    ))}
                 </group>
             )}
         </>

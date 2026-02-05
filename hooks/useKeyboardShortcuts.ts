@@ -199,6 +199,21 @@ export function useKeyboardShortcuts() {
                 return;
             }
 
+            // Ctrl+D: Deselect all
+            if (ctrl && key === 'd') {
+                e.preventDefault();
+                clearSelection();
+                return;
+            }
+
+            // Ctrl+A: Select all objects
+            if (ctrl && key === 'a') {
+                e.preventDefault();
+                const allIds = useStore.getState().objects.map(o => o.id);
+                useStore.setState({ selectedIds: allIds });
+                return;
+            }
+
             // Escape: Clear selection / Cancel
             if (key === 'escape') {
                 e.preventDefault();
@@ -351,6 +366,8 @@ export const KEYBOARD_SHORTCUTS = [
     { key: 'Shift+E', description: 'Rotate +15°' },
     { key: 'Delete', description: 'Delete selected' },
     { key: 'Escape', description: 'Clear selection / Cancel' },
+    { key: 'Ctrl+A', description: 'Select all objects' },
+    { key: 'Ctrl+D', description: 'Deselect all' },
     { key: 'Ctrl+Z', description: 'Undo' },
     { key: 'Ctrl+Shift+Z', description: 'Redo' }
 ];

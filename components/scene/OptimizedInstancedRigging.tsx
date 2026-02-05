@@ -153,7 +153,10 @@ const InstancedBatch: React.FC<InstancedBatchProps> = ({
 
         const obj = objectsRef.current[instanceId];
         if (obj && ['select', 'move', 'rotate'].includes(activeTool)) {
-            selectObject(obj.id, e.nativeEvent.shiftKey);
+            // Support both Shift+click and Ctrl/Cmd+click for multi-selection
+            const nativeEvent = e.nativeEvent;
+            const isMultiSelect = nativeEvent.shiftKey || nativeEvent.ctrlKey || nativeEvent.metaKey;
+            selectObject(obj.id, isMultiSelect);
         }
     };
 
