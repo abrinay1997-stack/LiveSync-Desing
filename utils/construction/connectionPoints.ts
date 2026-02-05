@@ -52,32 +52,32 @@ export function getTrussConnectionPoints(obj: SceneObject): ConnectionPoint[] {
     // When vertical (rotated 90° on Z): extends along world Y
     // When rotated 90° on Y: extends along world Z
 
-    // End 1 (local -X)
-    const end1Local = new THREE.Vector3(-dims.w / 2, 0, 0);
-    const end1Dir = new THREE.Vector3(-1, 0, 0);
-    end1Local.applyMatrix4(rotMatrix);
-    end1Dir.applyMatrix4(rotMatrix).normalize();
+    // Left end (local -X)
+    const leftLocal = new THREE.Vector3(-dims.w / 2, 0, 0);
+    const leftDir = new THREE.Vector3(-1, 0, 0);
+    leftLocal.applyMatrix4(rotMatrix);
+    leftDir.applyMatrix4(rotMatrix).normalize();
 
     points.push({
-        id: `${obj.id}-end1`,
+        id: `${obj.id}-left`,
         objectId: obj.id,
-        position: pos.clone().add(end1Local),
-        direction: end1Dir,
+        position: pos.clone().add(leftLocal),
+        direction: leftDir,
         type: 'end',
         connected: false
     });
 
-    // End 2 (local +X)
-    const end2Local = new THREE.Vector3(dims.w / 2, 0, 0);
-    const end2Dir = new THREE.Vector3(1, 0, 0);
-    end2Local.applyMatrix4(rotMatrix);
-    end2Dir.applyMatrix4(rotMatrix).normalize();
+    // Right end (local +X)
+    const rightLocal = new THREE.Vector3(dims.w / 2, 0, 0);
+    const rightDir = new THREE.Vector3(1, 0, 0);
+    rightLocal.applyMatrix4(rotMatrix);
+    rightDir.applyMatrix4(rotMatrix).normalize();
 
     points.push({
-        id: `${obj.id}-end2`,
+        id: `${obj.id}-right`,
         objectId: obj.id,
-        position: pos.clone().add(end2Local),
-        direction: end2Dir,
+        position: pos.clone().add(rightLocal),
+        direction: rightDir,
         type: 'end',
         connected: false
     });
@@ -166,21 +166,21 @@ export function calculateSnapToConnection(
     for (const targetPoint of connectionPoints) {
         if (targetPoint.connected) continue;
 
-        // Check end 1 of ghost
-        const distEnd1 = ghostEnd1World.distanceTo(targetPoint.position);
-        if (distEnd1 < snapThreshold && distEnd1 < bestSnap.distance) {
-            // Snap ghost's end1 to target
-            const alignedRotation = calculateAlignmentRotation(targetPoint.direction, 'end1', ghostRotation);
+        // Check left end of ghost
+        const distLeft = ghostEnd1World.distanceTo(targetPoint.position);
+        if (distLeft < snapThreshold && distLeft < bestSnap.distance) {
+            // Snap ghost's left end to target
+            const alignedRotation = calculateAlignmentRotation(targetPoint.direction, 'left', ghostRotation);
             const newRotMatrix = new THREE.Matrix4().makeRotationFromEuler(alignedRotation);
-            const newEnd1Offset = new THREE.Vector3(-ghostDimensions.w / 2, 0, 0).applyMatrix4(newRotMatrix);
-            const newPos = targetPoint.position.clone().sub(newEnd1Offset);
+            const newLeftOffset = new THREE.Vector3(-ghostDimensions.w / 2, 0, 0).applyMatrix4(newRotMatrix);
+            const newPos = targetPoint.position.clone().sub(newLeftOffset);
 
             bestSnap = {
                 snapped: true,
                 position: newPos,
                 rotation: alignedRotation,
                 connectionPoint: {
-                    id: 'ghost-end1',
+                    id: 'ghost-left',
                     objectId: 'ghost',
                     position: ghostEnd1World,
                     direction: new THREE.Vector3(-1, 0, 0).applyMatrix4(rotMatrix).normalize(),
@@ -188,25 +188,25 @@ export function calculateSnapToConnection(
                     connected: false
                 },
                 targetPoint,
-                distance: distEnd1
+                distance: distLeft
             };
         }
 
-        // Check end 2 of ghost
-        const distEnd2 = ghostEnd2World.distanceTo(targetPoint.position);
-        if (distEnd2 < snapThreshold && distEnd2 < bestSnap.distance) {
-            // Snap ghost's end2 to target
-            const alignedRotation = calculateAlignmentRotation(targetPoint.direction, 'end2', ghostRotation);
+        // Check right end of ghost
+        const distRight = ghostEnd2World.distanceTo(targetPoint.position);
+        if (distRight < snapThreshold && distRight < bestSnap.distance) {
+            // Snap ghost's right end to target
+            const alignedRotation = calculateAlignmentRotation(targetPoint.direction, 'right', ghostRotation);
             const newRotMatrix = new THREE.Matrix4().makeRotationFromEuler(alignedRotation);
-            const newEnd2Offset = new THREE.Vector3(ghostDimensions.w / 2, 0, 0).applyMatrix4(newRotMatrix);
-            const newPos = targetPoint.position.clone().sub(newEnd2Offset);
+            const newRightOffset = new THREE.Vector3(ghostDimensions.w / 2, 0, 0).applyMatrix4(newRotMatrix);
+            const newPos = targetPoint.position.clone().sub(newRightOffset);
 
             bestSnap = {
                 snapped: true,
                 position: newPos,
                 rotation: alignedRotation,
                 connectionPoint: {
-                    id: 'ghost-end2',
+                    id: 'ghost-right',
                     objectId: 'ghost',
                     position: ghostEnd2World,
                     direction: new THREE.Vector3(1, 0, 0).applyMatrix4(rotMatrix).normalize(),
@@ -214,7 +214,7 @@ export function calculateSnapToConnection(
                     connected: false
                 },
                 targetPoint,
-                distance: distEnd2
+                distance: distRight
             };
         }
     }
@@ -228,7 +228,7 @@ export function calculateSnapToConnection(
  */
 function calculateAlignmentRotation(
     targetDirection: THREE.Vector3,
-    whichEnd: 'end1' | 'end2',
+    whichEnd: 'left' | 'right',
     currentRotation: THREE.Euler
 ): THREE.Euler {
     // Normalize target direction
@@ -238,15 +238,15 @@ function calculateAlignmentRotation(
     // The truss extends along its local X axis
 
     // For snapping:
-    // - end1 (local -X) should point OPPOSITE to target direction
-    // - end2 (local +X) should point SAME as target direction
+    // - left (local -X) should point OPPOSITE to target direction
+    // - right (local +X) should point SAME as target direction
 
     let alignDir: THREE.Vector3;
-    if (whichEnd === 'end1') {
-        // Our end1 (-X) meets target, so our +X should point opposite to target
+    if (whichEnd === 'left') {
+        // Our left (-X) meets target, so our +X should point opposite to target
         alignDir = targetDir.clone().negate();
     } else {
-        // Our end2 (+X) meets target, so our +X should point opposite to target
+        // Our right (+X) meets target, so our +X should point opposite to target
         alignDir = targetDir.clone().negate();
     }
 
@@ -255,10 +255,10 @@ function calculateAlignmentRotation(
 
     if (isVertical) {
         // Vertical alignment - rotate around Z axis
-        // If target points up (+Y), we need Z rotation of -90° (for end2) or +90° (for end1)
+        // If target points up (+Y), we need Z rotation of -90° (for right) or +90° (for left)
         // If target points down (-Y), opposite
         const sign = targetDir.y > 0 ? 1 : -1;
-        const zRot = whichEnd === 'end1' ? sign * Math.PI / 2 : -sign * Math.PI / 2;
+        const zRot = whichEnd === 'left' ? sign * Math.PI / 2 : -sign * Math.PI / 2;
         return new THREE.Euler(0, 0, zRot);
     } else {
         // Horizontal alignment - rotate around Y axis
