@@ -1,8 +1,8 @@
 import React from 'react';
 import { useStore } from '../../store';
-import { 
+import {
     MousePointer2, Move, RotateCw, Grid, Monitor, Magnet,
-    Ruler, Tag, Cable, Eraser, Pencil
+    Ruler, Tag, Cable, Eraser, Pencil, Square, Lasso, ChevronDown
 } from 'lucide-react';
 
 const ToolButton = ({ icon: Icon, active, onClick, tooltip, disabled = false }: any) => (
@@ -24,6 +24,71 @@ const ToolButton = ({ icon: Icon, active, onClick, tooltip, disabled = false }: 
     </button>
 );
 
+// Selection tool submenu component
+const SelectionToolGroup = ({ activeTool, setTool }: { activeTool: string, setTool: (tool: any) => void }) => {
+    const [showSubmenu, setShowSubmenu] = React.useState(false);
+    const isSelectionTool = ['select', 'box-select', 'lasso-select'].includes(activeTool);
+
+    const getActiveIcon = () => {
+        switch (activeTool) {
+            case 'box-select': return Square;
+            case 'lasso-select': return Lasso;
+            default: return MousePointer2;
+        }
+    };
+
+    const ActiveIcon = getActiveIcon();
+
+    return (
+        <div className="relative">
+            <div className="flex items-center">
+                <button
+                    onClick={() => setTool(activeTool === 'select' ? 'select' : activeTool)}
+                    onContextMenu={(e) => { e.preventDefault(); setShowSubmenu(!showSubmenu); }}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all relative group ${
+                        isSelectionTool
+                            ? 'bg-aether-accent text-aether-900 shadow-[0_0_15px_-3px_rgba(6,182,212,0.4)]'
+                            : 'text-gray-500 hover:text-white hover:bg-white/5'
+                    }`}
+                    title="Selection Tools (Right-click for options)"
+                >
+                    <ActiveIcon size={20} strokeWidth={isSelectionTool ? 2.5 : 1.5} />
+                    <ChevronDown size={8} className="absolute bottom-1 right-1 opacity-50" />
+                </button>
+            </div>
+
+            {/* Submenu */}
+            {showSubmenu && (
+                <div className="absolute left-12 top-0 bg-[#18181b] border border-white/10 rounded-lg shadow-xl z-50 py-1 min-w-[140px]">
+                    <button
+                        onClick={() => { setTool('select'); setShowSubmenu(false); }}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-white/5 ${activeTool === 'select' ? 'text-cyan-400' : 'text-gray-300'}`}
+                    >
+                        <MousePointer2 size={14} /> Click Select (V)
+                    </button>
+                    <button
+                        onClick={() => { setTool('box-select'); setShowSubmenu(false); }}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-white/5 ${activeTool === 'box-select' ? 'text-cyan-400' : 'text-gray-300'}`}
+                    >
+                        <Square size={14} /> Box Select (B)
+                    </button>
+                    <button
+                        onClick={() => { setTool('lasso-select'); setShowSubmenu(false); }}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-white/5 ${activeTool === 'lasso-select' ? 'text-cyan-400' : 'text-gray-300'}`}
+                    >
+                        <Lasso size={14} /> Lasso Select (L)
+                    </button>
+                </div>
+            )}
+
+            {/* Click outside to close */}
+            {showSubmenu && (
+                <div className="fixed inset-0 z-40" onClick={() => setShowSubmenu(false)} />
+            )}
+        </div>
+    );
+};
+
 export const Toolbar = () => {
     const activeTool = useStore(state => state.activeTool);
     const setTool = useStore(state => state.setTool);
@@ -40,7 +105,9 @@ export const Toolbar = () => {
     return (
         <div className="absolute left-4 top-20 bottom-20 w-12 flex flex-col items-center z-40 pointer-events-auto">
             <div className="bg-[#09090b]/90 backdrop-blur-md border border-white/5 rounded-2xl p-1 flex flex-col gap-1 shadow-2xl">
-                <ToolButton icon={MousePointer2} active={activeTool === 'select'} onClick={() => setTool('select')} tooltip="Select (V)" />
+                {/* Selection Tools Group */}
+                <SelectionToolGroup activeTool={activeTool} setTool={setTool} />
+
                 <ToolButton icon={Move} active={activeTool === 'move'} onClick={() => setTool('move')} tooltip="Move (G)" />
                 <ToolButton icon={RotateCw} active={activeTool === 'rotate'} onClick={() => setTool('rotate')} tooltip="Rotate (R)" />
                 

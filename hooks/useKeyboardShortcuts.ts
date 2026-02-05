@@ -274,6 +274,39 @@ export function useKeyboardShortcuts() {
                 return;
             }
 
+            // B: Box select tool
+            if (key === 'b' && !ctrl) {
+                e.preventDefault();
+                setTool('box-select');
+                return;
+            }
+
+            // L: Lasso select tool
+            if (key === 'l' && !ctrl) {
+                e.preventDefault();
+                setTool('lasso-select');
+                return;
+            }
+
+            // F: Frame selected (focus camera on selected objects)
+            if (key === 'f' && !ctrl && selectedIds.length > 0) {
+                e.preventDefault();
+                // Calculate center of selected objects
+                const selectedObjs = objects.filter(o => selectedIds.includes(o.id));
+                if (selectedObjs.length > 0) {
+                    const center = selectedObjs.reduce(
+                        (acc, obj) => ({
+                            x: acc.x + obj.position[0] / selectedObjs.length,
+                            y: acc.y + obj.position[1] / selectedObjs.length,
+                            z: acc.z + obj.position[2] / selectedObjs.length
+                        }),
+                        { x: 0, y: 0, z: 0 }
+                    );
+                    useStore.getState().setCameraTarget([center.x, center.y, center.z]);
+                }
+                return;
+            }
+
             // --- CONSTRUCTION SHORTCUTS ---
 
             // E: Extend truss
@@ -338,6 +371,7 @@ export function useKeyboardShortcuts() {
         selectedIds,
         selectedTruss,
         selectedObjects,
+        objects,
         handleExtend,
         handleDuplicate,
         handleFillGap,
@@ -352,16 +386,18 @@ export function useKeyboardShortcuts() {
 
 // Export shortcuts list for help display
 export const KEYBOARD_SHORTCUTS = [
-    { key: 'V', description: 'Select tool' },
+    { key: 'V', description: 'Click Select tool' },
+    { key: 'B', description: 'Box Select tool' },
+    { key: 'L', description: 'Lasso Select tool' },
     { key: 'M', description: 'Move tool' },
     { key: 'R', description: 'Rotate tool' },
     { key: 'T', description: 'Tape measure' },
     { key: 'X', description: 'Eraser tool' },
     { key: 'C', description: 'Cable tool' },
+    { key: 'F', description: 'Frame selected (focus camera)' },
     { key: 'E', description: 'Extend truss (with truss selected)' },
     { key: 'D', description: 'Duplicate truss forward' },
     { key: 'Shift+D', description: 'Duplicate truss 3×' },
-    { key: 'F', description: 'Fill gap (with 2 trusses selected)' },
     { key: 'Q', description: 'Rotate -15°' },
     { key: 'Shift+E', description: 'Rotate +15°' },
     { key: 'Delete', description: 'Delete selected' },

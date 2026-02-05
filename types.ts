@@ -3,7 +3,7 @@ import React from 'react';
 
 // System Engineering Types
 export type ViewMode = 'perspective' | 'top' | 'side';
-export type ToolType = 'select' | 'move' | 'rotate' | 'tape' | 'label' | 'cable' | 'eraser';
+export type ToolType = 'select' | 'box-select' | 'lasso-select' | 'move' | 'rotate' | 'tape' | 'label' | 'cable' | 'eraser';
 
 export type PortType = 'xlr' | 'speakon' | 'powercon' | 'ethercon' | 'generic';
 export type PortDirection = 'in' | 'out' | 'bi';

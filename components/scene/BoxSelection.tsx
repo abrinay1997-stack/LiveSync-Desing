@@ -31,8 +31,8 @@ export const BoxSelection: React.FC<BoxSelectionProps> = ({ enabled }) => {
     const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
     const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
 
-    // Only enable box selection when select tool is active
-    const isActive = enabled && activeTool === 'select';
+    // Only enable box selection when box-select tool is active
+    const isActive = enabled && activeTool === 'box-select';
 
     // Project 3D position to 2D screen coordinates
     const projectToScreen = useCallback((position: [number, number, number]): { x: number; y: number } => {
@@ -181,7 +181,17 @@ export const BoxSelectionOverlay: React.FC = () => {
     const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
     const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
 
-    const isActive = activeTool === 'select';
+    const isActive = activeTool === 'box-select';
+
+    // Set cursor style when box-select tool is active
+    useEffect(() => {
+        if (isActive) {
+            document.body.style.cursor = 'crosshair';
+        }
+        return () => {
+            document.body.style.cursor = 'auto';
+        };
+    }, [isActive]);
 
     // Handle mouse events for the overlay
     useEffect(() => {

@@ -6,10 +6,15 @@ import { useStore } from '../../store';
 export const ViewportController = () => {
     const viewMode = useStore(state => state.viewMode);
     const isCameraLocked = useStore(state => state.isCameraLocked);
+    const activeTool = useStore(state => state.activeTool);
     const setCameraTarget = useStore(state => state.setCameraTarget);
     const cameraTarget = useStore(state => state.cameraTarget);
-    
+
     const controlsRef = useRef<any>(null);
+
+    // Lock camera when using selection tools that require dragging on the canvas
+    const isSelectionToolActive = ['box-select', 'lasso-select'].includes(activeTool);
+    const shouldLockCamera = isCameraLocked || isSelectionToolActive;
 
     // Sync controls target with store when it changes externally
     useEffect(() => {
@@ -46,11 +51,13 @@ export const ViewportController = () => {
                 <OrthographicCamera makeDefault position={[20, cameraTarget[1], cameraTarget[2]]} zoom={40} rotation={[0, Math.PI / 2, 0]} />
             )}
             
-            <OrbitControls 
+            <OrbitControls
                 ref={controlsRef}
-                makeDefault 
-                enabled={!isCameraLocked}
-                enableRotate={viewMode === 'perspective'}
+                makeDefault
+                enabled={!shouldLockCamera}
+                enableRotate={viewMode === 'perspective' && !shouldLockCamera}
+                enablePan={!shouldLockCamera}
+                enableZoom={!isSelectionToolActive} // Allow zoom even with selection tools
                 enableDamping={true}
                 dampingFactor={0.1}
                 maxPolarAngle={Math.PI / 1.8}
