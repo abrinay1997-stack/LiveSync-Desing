@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Grid, ContactShadows, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import { useStore } from '../store';
 import { RenderObject } from './scene/RenderObject';
@@ -14,17 +14,67 @@ import { SPLVisualization } from './scene/SPLVisualization';
 import { GroundPlane } from './scene/GroundPlane';
 import { ConnectionPointsOverlay } from './scene/ConnectionPointsOverlay';
 import { registerRenderer, unregisterRenderer } from '../utils/export/screenshotExport';
+import { PerformanceOverlay } from './ui/PerformanceOverlay';
+import {
+    transientStore,
+    spatialIndex,
+    performanceMonitor
+} from '../utils/performance';
 
 /**
- * Helper component to register the WebGL renderer for screenshots
+ * Helper component to register the WebGL renderer for screenshots and performance monitoring
  */
 const RendererRegistration = () => {
     const { gl } = useThree();
 
     useEffect(() => {
         registerRenderer(gl);
-        return () => unregisterRenderer();
+        performanceMonitor.setRenderer(gl);
+        performanceMonitor.start();
+
+        return () => {
+            unregisterRenderer();
+            performanceMonitor.stop();
+        };
     }, [gl]);
+
+    return null;
+};
+
+/**
+ * Performance tracking component - records frame metrics
+ */
+const PerformanceTracker = () => {
+    useFrame(() => {
+        performanceMonitor.recordFrame();
+    });
+
+    return null;
+};
+
+/**
+ * Syncs scene objects with performance subsystems
+ */
+const PerformanceSync: React.FC<{ objects: any[]; layers: any[] }> = ({ objects, layers }) => {
+    useEffect(() => {
+        // Filter visible objects
+        const visibleObjects = objects.filter(obj => {
+            const layer = layers.find((l: any) => l.id === obj.layerId);
+            return layer ? layer.visible : true;
+        });
+
+        // Sync to transient store
+        transientStore.initFromObjects(visibleObjects);
+
+        // Rebuild spatial index
+        spatialIndex.build(visibleObjects);
+
+        // Update stats
+        performanceMonitor.setCustomStats({
+            objectCount: objects.length,
+            visibleCount: visibleObjects.length
+        });
+    }, [objects, layers]);
 
     return null;
 };
@@ -55,10 +105,22 @@ export const Scene3D = () => {
     });
   }, [objects, layers, selectedIds]);
 
+  // Check for debug mode (dev tools open or URL param)
+  const showPerformance = typeof window !== 'undefined' &&
+    (window.location.search.includes('perf=1') ||
+     (window as any).__LIVESYNC_DEBUG__);
+
   return (
-    <div className="w-full h-full bg-[#09090b]">
+    <div className="w-full h-full bg-[#09090b] relative">
+      {/* Performance Overlay (outside Canvas for proper DOM rendering) */}
+      {showPerformance && (
+        <PerformanceOverlay position="top-left" compact={false} />
+      )}
+
       <Canvas shadows dpr={[1, 2]} onPointerMissed={clearSelection} gl={{ preserveDrawingBuffer: true }}>
         <RendererRegistration />
+        <PerformanceTracker />
+        <PerformanceSync objects={objects} layers={layers} />
         <ViewportController />
         <StageEnvironment />
 
