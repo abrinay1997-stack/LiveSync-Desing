@@ -45,6 +45,8 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
   const updateObjectFinal = useStore(state => state.updateObjectFinal);
   const activeTool = useStore(state => state.activeTool);
   const setCameraLocked = useStore(state => state.setCameraLocked);
+  const transformAxisConstraint = useStore(state => state.transformAxisConstraint);
+  const setTransformAxisConstraint = useStore(state => state.setTransformAxisConstraint);
 
   const objectRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -197,6 +199,10 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                 mode={transformMode}
                 space={transformMode === 'rotate' ? 'world' : 'local'}
                 size={0.8}
+                axis={transformAxisConstraint?.toUpperCase() || undefined}
+                showX={!transformAxisConstraint || transformAxisConstraint === 'x'}
+                showY={!transformAxisConstraint || transformAxisConstraint === 'y'}
+                showZ={!transformAxisConstraint || transformAxisConstraint === 'z'}
                 onMouseDown={() => {
                     setCameraLocked(true);
                     setIsDragging(true);
@@ -238,6 +244,10 @@ export const RenderObject: React.FC<RenderObjectProps> = ({ data, isSelected, sh
                         });
                     }
                     setSnapTarget(null);
+                    // Clear axis constraint after transform completes
+                    if (transformAxisConstraint) {
+                        setTransformAxisConstraint(null);
+                    }
                 }}
                 onChange={() => {
                     if (objectRef.current && isDragging) {

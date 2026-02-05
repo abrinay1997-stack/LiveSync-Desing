@@ -14,6 +14,7 @@ import { SPLVisualization } from './scene/SPLVisualization';
 import { GroundPlane } from './scene/GroundPlane';
 import { ConnectionPointsOverlay } from './scene/ConnectionPointsOverlay';
 import { BoxSelection, BoxSelectionOverlay } from './scene/BoxSelection';
+import { LassoSelection, LassoSelectionOverlay } from './scene/LassoSelection';
 import { registerRenderer, unregisterRenderer } from '../utils/export/screenshotExport';
 import { PerformanceOverlay } from './ui/PerformanceOverlay';
 import {
@@ -118,8 +119,9 @@ export const Scene3D = () => {
         <PerformanceOverlay position="top-left" compact={false} />
       )}
 
-      {/* Box Selection Overlay (DOM element for visual feedback) */}
+      {/* Selection Overlays (DOM elements for visual feedback) */}
       <BoxSelectionOverlay />
+      <LassoSelectionOverlay />
 
       <Canvas shadows dpr={[1, 2]} onPointerMissed={clearSelection} gl={{ preserveDrawingBuffer: true }}>
         <RendererRegistration />
@@ -145,6 +147,7 @@ export const Scene3D = () => {
         <GhostObject />
         <ConnectionPointsOverlay />
         <BoxSelection enabled={true} />
+        <LassoSelection enabled={true} />
         <TapeMeasure />
         <CableRenderer />
         <CatenaryVisualization />

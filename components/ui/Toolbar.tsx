@@ -89,6 +89,52 @@ const SelectionToolGroup = ({ activeTool, setTool }: { activeTool: string, setTo
     );
 };
 
+// Axis constraint indicator component
+const AxisConstraintIndicator = () => {
+    const transformAxisConstraint = useStore(state => state.transformAxisConstraint);
+    const setTransformAxisConstraint = useStore(state => state.setTransformAxisConstraint);
+    const activeTool = useStore(state => state.activeTool);
+    const selectedIds = useStore(state => state.selectedIds);
+
+    // Only show when move or rotate tool is active and something is selected
+    if (!['move', 'rotate'].includes(activeTool) || selectedIds.length === 0) {
+        return null;
+    }
+
+    const axisColors = {
+        x: '#ef4444', // red
+        y: '#22c55e', // green
+        z: '#3b82f6'  // blue
+    };
+
+    return (
+        <div className="bg-[#09090b]/90 backdrop-blur-md border border-white/5 rounded-lg p-2 shadow-2xl">
+            <div className="text-[9px] text-gray-500 mb-1 text-center">AXIS LOCK</div>
+            <div className="flex gap-1">
+                {(['x', 'y', 'z'] as const).map((axis) => (
+                    <button
+                        key={axis}
+                        onClick={() => setTransformAxisConstraint(transformAxisConstraint === axis ? null : axis)}
+                        className={`w-6 h-6 rounded font-bold text-xs flex items-center justify-center transition-all ${
+                            transformAxisConstraint === axis
+                                ? 'ring-2 ring-white/30'
+                                : 'opacity-50 hover:opacity-100'
+                        }`}
+                        style={{
+                            backgroundColor: transformAxisConstraint === axis ? axisColors[axis] : 'transparent',
+                            color: transformAxisConstraint === axis ? 'white' : axisColors[axis],
+                            border: `1px solid ${axisColors[axis]}`
+                        }}
+                        title={`Lock to ${axis.toUpperCase()} axis (${axis.toUpperCase()})`}
+                    >
+                        {axis.toUpperCase()}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 export const Toolbar = () => {
     const activeTool = useStore(state => state.activeTool);
     const setTool = useStore(state => state.setTool);
@@ -121,6 +167,11 @@ export const Toolbar = () => {
                 <ToolButton icon={Ruler} active={activeTool === 'tape'} onClick={() => setTool('tape')} tooltip="Tape Measure" />
                 <ToolButton icon={Tag} active={activeTool === 'label'} onClick={() => setTool('label')} tooltip="Add Label" disabled={true} />
                 <ToolButton icon={Cable} active={activeTool === 'cable'} onClick={() => setTool('cable')} tooltip="Patch Cable" />
+            </div>
+
+            {/* Axis Constraint Indicator */}
+            <div className="mt-2">
+                <AxisConstraintIndicator />
             </div>
 
             <div className="mt-auto bg-[#09090b]/90 backdrop-blur-md border border-white/5 rounded-2xl p-1 flex flex-col gap-1 shadow-2xl">

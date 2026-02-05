@@ -9,6 +9,7 @@ export const createInteractionSlice: StoreSlice<import('../types').InteractionSl
     activePlacementAsset: null,
     isCameraLocked: false,
     cameraTarget: [0, 0, 0],
+    transformAxisConstraint: null,
 
     // --- SELECTION ---
     selectObject: (id, multi) => set((state) => {
@@ -49,6 +50,9 @@ export const createInteractionSlice: StoreSlice<import('../types').InteractionSl
     toggleSnapping: () => set((state) => ({ snappingEnabled: !state.snappingEnabled })),
     toggleContinuousPlacement: () => set((state) => ({ continuousPlacement: !state.continuousPlacement })),
     setPlacementAsset: (assetKey) => set({ activePlacementAsset: assetKey }),
+
+    // --- AXIS CONSTRAINT ---
+    setTransformAxisConstraint: (axis) => set({ transformAxisConstraint: axis }),
 
     // --- CAMERA ---
     setCameraLocked: (locked) => set({ isCameraLocked: locked }),

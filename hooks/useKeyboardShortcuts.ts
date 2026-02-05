@@ -34,6 +34,8 @@ export function useKeyboardShortcuts() {
     const updateObjectFinal = useStore(state => state.updateObjectFinal);
     const undo = useStore(state => state.undo);
     const redo = useStore(state => state.redo);
+    const transformAxisConstraint = useStore(state => state.transformAxisConstraint);
+    const setTransformAxisConstraint = useStore(state => state.setTransformAxisConstraint);
 
     // Get selected objects
     const selectedObjects = objects.filter(o => selectedIds.includes(o.id));
@@ -260,10 +262,31 @@ export function useKeyboardShortcuts() {
                 return;
             }
 
-            // X: Eraser
+            // X: Axis constraint or Eraser (X for axis only when move/rotate tool is active and has selection)
             if (key === 'x' && !ctrl) {
+                // If move or rotate tool is active with selection, use as axis constraint
+                if ((activeTool === 'move' || activeTool === 'rotate') && selectedIds.length > 0) {
+                    e.preventDefault();
+                    setTransformAxisConstraint(transformAxisConstraint === 'x' ? null : 'x');
+                    return;
+                }
+                // Otherwise, switch to eraser
                 e.preventDefault();
                 setTool('eraser');
+                return;
+            }
+
+            // Y: Y-axis constraint (only when move/rotate tool is active)
+            if (key === 'y' && !ctrl && (activeTool === 'move' || activeTool === 'rotate') && selectedIds.length > 0) {
+                e.preventDefault();
+                setTransformAxisConstraint(transformAxisConstraint === 'y' ? null : 'y');
+                return;
+            }
+
+            // Z: Z-axis constraint (only when move/rotate tool is active)
+            if (key === 'z' && !ctrl && (activeTool === 'move' || activeTool === 'rotate') && selectedIds.length > 0) {
+                e.preventDefault();
+                setTransformAxisConstraint(transformAxisConstraint === 'z' ? null : 'z');
                 return;
             }
 
@@ -372,6 +395,7 @@ export function useKeyboardShortcuts() {
         selectedTruss,
         selectedObjects,
         objects,
+        activeTool,
         handleExtend,
         handleDuplicate,
         handleFillGap,
@@ -380,7 +404,9 @@ export function useKeyboardShortcuts() {
         undo,
         redo,
         clearSelection,
-        setTool
+        setTool,
+        transformAxisConstraint,
+        setTransformAxisConstraint
     ]);
 }
 
@@ -392,7 +418,9 @@ export const KEYBOARD_SHORTCUTS = [
     { key: 'M', description: 'Move tool' },
     { key: 'R', description: 'Rotate tool' },
     { key: 'T', description: 'Tape measure' },
-    { key: 'X', description: 'Eraser tool' },
+    { key: 'X', description: 'Eraser tool / X-axis constraint' },
+    { key: 'Y', description: 'Y-axis constraint (when transforming)' },
+    { key: 'Z', description: 'Z-axis constraint (when transforming)' },
     { key: 'C', description: 'Cable tool' },
     { key: 'F', description: 'Frame selected (focus camera)' },
     { key: 'E', description: 'Extend truss (with truss selected)' },

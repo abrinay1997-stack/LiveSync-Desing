@@ -59,6 +59,8 @@ export interface UISlice {
     toggleObjectLabels: () => void;
 }
 
+export type AxisConstraint = 'x' | 'y' | 'z' | null;
+
 export interface InteractionSlice {
     // Selection
     selectedIds: string[];
@@ -76,6 +78,10 @@ export interface InteractionSlice {
     toggleContinuousPlacement: () => void;
     activePlacementAsset: string | null;
     setPlacementAsset: (assetKey: string | null) => void;
+
+    // Transform axis constraint (Blender-style X/Y/Z locking)
+    transformAxisConstraint: AxisConstraint;
+    setTransformAxisConstraint: (axis: AxisConstraint) => void;
 
     // Camera
     isCameraLocked: boolean;
