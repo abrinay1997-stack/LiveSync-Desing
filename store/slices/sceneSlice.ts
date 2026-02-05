@@ -46,6 +46,7 @@ export const createSceneSlice: StoreSlice<import('../types').SceneSlice> = (set,
     ],
     cables: [],
     measurements: [],
+    groups: [],
     lightingPreset: 'studio',
     pendingCableStartId: null,
 
@@ -132,6 +133,95 @@ export const createSceneSlice: StoreSlice<import('../types').SceneSlice> = (set,
         layers: state.layers.map(l => l.id === id ? { ...l, visible: !l.visible } : l)
     })),
 
+    // --- GROUP ACTIONS ---
+    createGroup: (objectIds, name) => {
+        if (objectIds.length < 2) return null; // Need at least 2 objects to form a group
+
+        get().pushHistory();
+        const groupId = uuidv4();
+        const groupName = name || `Group ${get().groups.length + 1}`;
+
+        // Remove these objects from any existing groups first
+        set((state) => {
+            const updatedGroups = state.groups.map(g => ({
+                ...g,
+                objectIds: g.objectIds.filter(id => !objectIds.includes(id))
+            })).filter(g => g.objectIds.length > 0); // Remove empty groups
+
+            return {
+                groups: [...updatedGroups, {
+                    id: groupId,
+                    name: groupName,
+                    objectIds: objectIds,
+                    color: '#8b5cf6' // Default purple color for groups
+                }]
+            };
+        });
+
+        return groupId;
+    },
+
+    dissolveGroup: (groupId) => {
+        get().pushHistory();
+        set((state) => ({
+            groups: state.groups.filter(g => g.id !== groupId)
+        }));
+    },
+
+    addToGroup: (groupId, objectIds) => {
+        get().pushHistory();
+        set((state) => {
+            // First remove from any existing groups
+            let updatedGroups = state.groups.map(g => ({
+                ...g,
+                objectIds: g.objectIds.filter(id => !objectIds.includes(id))
+            }));
+
+            // Then add to target group
+            updatedGroups = updatedGroups.map(g => {
+                if (g.id === groupId) {
+                    return {
+                        ...g,
+                        objectIds: [...new Set([...g.objectIds, ...objectIds])]
+                    };
+                }
+                return g;
+            }).filter(g => g.objectIds.length > 0);
+
+            return { groups: updatedGroups };
+        });
+    },
+
+    removeFromGroup: (groupId, objectIds) => {
+        get().pushHistory();
+        set((state) => ({
+            groups: state.groups.map(g => {
+                if (g.id === groupId) {
+                    const remainingIds = g.objectIds.filter(id => !objectIds.includes(id));
+                    return { ...g, objectIds: remainingIds };
+                }
+                return g;
+            }).filter(g => g.objectIds.length > 0) // Remove empty groups
+        }));
+    },
+
+    renameGroup: (groupId, name) => {
+        set((state) => ({
+            groups: state.groups.map(g => g.id === groupId ? { ...g, name } : g)
+        }));
+    },
+
+    getGroupForObject: (objectId) => {
+        return get().groups.find(g => g.objectIds.includes(objectId));
+    },
+
+    selectGroup: (groupId) => {
+        const group = get().groups.find(g => g.id === groupId);
+        if (group) {
+            set({ selectedIds: [...group.objectIds] });
+        }
+    },
+
     // --- CABLE ACTIONS ---
     startCable: (objectId) => set({ pendingCableStartId: objectId }),
 
@@ -198,6 +288,7 @@ export const createSceneSlice: StoreSlice<import('../types').SceneSlice> = (set,
         layers: data.layers || state.layers,
         cables: data.cables || [],
         measurements: data.measurements || [],
+        groups: (data as any).groups || [],
         cameraTarget: data.cameraTarget || state.cameraTarget,
         lightingPreset: data.lightingPreset || state.lightingPreset,
         history: { past: [], future: [] },

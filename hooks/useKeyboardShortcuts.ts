@@ -36,6 +36,10 @@ export function useKeyboardShortcuts() {
     const redo = useStore(state => state.redo);
     const transformAxisConstraint = useStore(state => state.transformAxisConstraint);
     const setTransformAxisConstraint = useStore(state => state.setTransformAxisConstraint);
+    const createGroup = useStore(state => state.createGroup);
+    const dissolveGroup = useStore(state => state.dissolveGroup);
+    const groups = useStore(state => state.groups);
+    const getGroupForObject = useStore(state => state.getGroupForObject);
 
     // Get selected objects
     const selectedObjects = objects.filter(o => selectedIds.includes(o.id));
@@ -216,6 +220,34 @@ export function useKeyboardShortcuts() {
                 return;
             }
 
+            // Ctrl+G: Group selected objects
+            if (ctrl && key === 'g' && !shift) {
+                e.preventDefault();
+                if (selectedIds.length >= 2) {
+                    createGroup(selectedIds);
+                }
+                return;
+            }
+
+            // Ctrl+Shift+G: Ungroup / Dissolve group
+            if (ctrl && shift && key === 'g') {
+                e.preventDefault();
+                // Find groups that contain any of the selected objects
+                const state = useStore.getState();
+                const affectedGroups = new Set<string>();
+                for (const id of selectedIds) {
+                    const group = state.groups.find(g => g.objectIds.includes(id));
+                    if (group) {
+                        affectedGroups.add(group.id);
+                    }
+                }
+                // Dissolve all affected groups
+                for (const groupId of affectedGroups) {
+                    dissolveGroup(groupId);
+                }
+                return;
+            }
+
             // Escape: Clear selection / Cancel
             if (key === 'escape') {
                 e.preventDefault();
@@ -386,6 +418,47 @@ export function useKeyboardShortcuts() {
                 handleQuickRotate(15);
                 return;
             }
+
+            // --- SELECT BY TYPE SHORTCUTS ---
+            // Shift+1: Select all trusses
+            if (shift && key === '1') {
+                e.preventDefault();
+                const trussIds = objects.filter(o => o.type === 'truss').map(o => o.id);
+                useStore.setState({ selectedIds: trussIds });
+                return;
+            }
+
+            // Shift+2: Select all speakers
+            if (shift && key === '2') {
+                e.preventDefault();
+                const speakerIds = objects.filter(o => o.type === 'speaker').map(o => o.id);
+                useStore.setState({ selectedIds: speakerIds });
+                return;
+            }
+
+            // Shift+3: Select all motors
+            if (shift && key === '3') {
+                e.preventDefault();
+                const motorIds = objects.filter(o => o.type === 'motor').map(o => o.id);
+                useStore.setState({ selectedIds: motorIds });
+                return;
+            }
+
+            // Shift+4: Select all stage elements
+            if (shift && key === '4') {
+                e.preventDefault();
+                const stageIds = objects.filter(o => o.type === 'stage').map(o => o.id);
+                useStore.setState({ selectedIds: stageIds });
+                return;
+            }
+
+            // Shift+5: Select all audience areas
+            if (shift && key === '5') {
+                e.preventDefault();
+                const audienceIds = objects.filter(o => o.type === 'audience').map(o => o.id);
+                useStore.setState({ selectedIds: audienceIds });
+                return;
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
@@ -406,7 +479,10 @@ export function useKeyboardShortcuts() {
         clearSelection,
         setTool,
         transformAxisConstraint,
-        setTransformAxisConstraint
+        setTransformAxisConstraint,
+        createGroup,
+        dissolveGroup,
+        groups
     ]);
 }
 
@@ -432,6 +508,13 @@ export const KEYBOARD_SHORTCUTS = [
     { key: 'Escape', description: 'Clear selection / Cancel' },
     { key: 'Ctrl+A', description: 'Select all objects' },
     { key: 'Ctrl+D', description: 'Deselect all' },
+    { key: 'Ctrl+G', description: 'Group selected objects' },
+    { key: 'Ctrl+Shift+G', description: 'Ungroup selected objects' },
     { key: 'Ctrl+Z', description: 'Undo' },
-    { key: 'Ctrl+Shift+Z', description: 'Redo' }
+    { key: 'Ctrl+Shift+Z', description: 'Redo' },
+    { key: 'Shift+1', description: 'Select all trusses' },
+    { key: 'Shift+2', description: 'Select all speakers' },
+    { key: 'Shift+3', description: 'Select all motors' },
+    { key: 'Shift+4', description: 'Select all stage elements' },
+    { key: 'Shift+5', description: 'Select all audience areas' }
 ];

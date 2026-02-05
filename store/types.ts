@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { SceneObject, Layer, ViewMode, ToolType, Measurement, Cable } from '../types';
+import { SceneObject, Layer, ViewMode, ToolType, Measurement, Cable, ObjectGroup } from '../types';
 
 // Data types specific to Store operations
 export type LightingPreset = 'studio' | 'stage' | 'outdoor';
@@ -96,6 +96,7 @@ export interface SceneSlice {
     layers: Layer[];
     cables: Cable[];
     measurements: Measurement[];
+    groups: ObjectGroup[];
     lightingPreset: LightingPreset;
 
     // Object Actions
@@ -112,6 +113,15 @@ export interface SceneSlice {
 
     // Layer Actions
     toggleLayerVisibility: (id: string) => void;
+
+    // Group Actions
+    createGroup: (objectIds: string[], name?: string) => string | null; // Returns group ID or null if failed
+    dissolveGroup: (groupId: string) => void;
+    addToGroup: (groupId: string, objectIds: string[]) => void;
+    removeFromGroup: (groupId: string, objectIds: string[]) => void;
+    renameGroup: (groupId: string, name: string) => void;
+    getGroupForObject: (objectId: string) => ObjectGroup | undefined;
+    selectGroup: (groupId: string) => void;
 
     // Cable Actions
     pendingCableStartId: string | null;

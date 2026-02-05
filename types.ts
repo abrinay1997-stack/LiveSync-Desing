@@ -76,6 +76,15 @@ export interface Measurement {
   distance: number;
 }
 
+// Group system for organizing objects
+export interface ObjectGroup {
+  id: string;
+  name: string;
+  objectIds: string[];  // IDs of objects in this group
+  color?: string;       // Optional color for group visualization
+  locked?: boolean;     // Lock group to prevent accidental changes
+}
+
 export interface AssetDefinition {
   name: string;
   type: AssetType;

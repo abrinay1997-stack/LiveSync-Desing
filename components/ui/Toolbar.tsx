@@ -2,7 +2,8 @@ import React from 'react';
 import { useStore } from '../../store';
 import {
     MousePointer2, Move, RotateCw, Grid, Monitor, Magnet,
-    Ruler, Tag, Cable, Eraser, Pencil, Square, Lasso, ChevronDown
+    Ruler, Tag, Cable, Eraser, Pencil, Square, Lasso, ChevronDown,
+    Boxes, Speaker, Cog, Theater, Users
 } from 'lucide-react';
 
 const ToolButton = ({ icon: Icon, active, onClick, tooltip, disabled = false }: any) => (
@@ -27,6 +28,7 @@ const ToolButton = ({ icon: Icon, active, onClick, tooltip, disabled = false }: 
 // Selection tool submenu component
 const SelectionToolGroup = ({ activeTool, setTool }: { activeTool: string, setTool: (tool: any) => void }) => {
     const [showSubmenu, setShowSubmenu] = React.useState(false);
+    const objects = useStore(state => state.objects);
     const isSelectionTool = ['select', 'box-select', 'lasso-select'].includes(activeTool);
 
     const getActiveIcon = () => {
@@ -38,6 +40,16 @@ const SelectionToolGroup = ({ activeTool, setTool }: { activeTool: string, setTo
     };
 
     const ActiveIcon = getActiveIcon();
+
+    // Select by type helper
+    const selectByType = (type: string) => {
+        const ids = objects.filter(o => o.type === type).map(o => o.id);
+        useStore.setState({ selectedIds: ids });
+        setShowSubmenu(false);
+    };
+
+    // Count objects by type
+    const countByType = (type: string) => objects.filter(o => o.type === type).length;
 
     return (
         <div className="relative">
@@ -59,7 +71,9 @@ const SelectionToolGroup = ({ activeTool, setTool }: { activeTool: string, setTo
 
             {/* Submenu */}
             {showSubmenu && (
-                <div className="absolute left-12 top-0 bg-[#18181b] border border-white/10 rounded-lg shadow-xl z-50 py-1 min-w-[140px]">
+                <div className="absolute left-12 top-0 bg-[#18181b] border border-white/10 rounded-lg shadow-xl z-50 py-1 min-w-[180px]">
+                    {/* Selection Tools Section */}
+                    <div className="px-3 py-1 text-[10px] text-gray-500 uppercase tracking-wider">Selection Tools</div>
                     <button
                         onClick={() => { setTool('select'); setShowSubmenu(false); }}
                         className={`w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-white/5 ${activeTool === 'select' ? 'text-cyan-400' : 'text-gray-300'}`}
@@ -77,6 +91,52 @@ const SelectionToolGroup = ({ activeTool, setTool }: { activeTool: string, setTo
                         className={`w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-white/5 ${activeTool === 'lasso-select' ? 'text-cyan-400' : 'text-gray-300'}`}
                     >
                         <Lasso size={14} /> Lasso Select (L)
+                    </button>
+
+                    {/* Divider */}
+                    <div className="h-px bg-white/10 my-1" />
+
+                    {/* Select by Type Section */}
+                    <div className="px-3 py-1 text-[10px] text-gray-500 uppercase tracking-wider">Select by Type</div>
+                    <button
+                        onClick={() => selectByType('truss')}
+                        disabled={countByType('truss') === 0}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-white/5 ${countByType('truss') === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300'}`}
+                    >
+                        <span className="flex items-center gap-2"><Boxes size={14} /> All Trusses</span>
+                        <span className="text-[10px] text-gray-500">{countByType('truss')} (⇧1)</span>
+                    </button>
+                    <button
+                        onClick={() => selectByType('speaker')}
+                        disabled={countByType('speaker') === 0}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-white/5 ${countByType('speaker') === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300'}`}
+                    >
+                        <span className="flex items-center gap-2"><Speaker size={14} /> All Speakers</span>
+                        <span className="text-[10px] text-gray-500">{countByType('speaker')} (⇧2)</span>
+                    </button>
+                    <button
+                        onClick={() => selectByType('motor')}
+                        disabled={countByType('motor') === 0}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-white/5 ${countByType('motor') === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300'}`}
+                    >
+                        <span className="flex items-center gap-2"><Cog size={14} /> All Motors</span>
+                        <span className="text-[10px] text-gray-500">{countByType('motor')} (⇧3)</span>
+                    </button>
+                    <button
+                        onClick={() => selectByType('stage')}
+                        disabled={countByType('stage') === 0}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-white/5 ${countByType('stage') === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300'}`}
+                    >
+                        <span className="flex items-center gap-2"><Theater size={14} /> All Stage</span>
+                        <span className="text-[10px] text-gray-500">{countByType('stage')} (⇧4)</span>
+                    </button>
+                    <button
+                        onClick={() => selectByType('audience')}
+                        disabled={countByType('audience') === 0}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-white/5 ${countByType('audience') === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300'}`}
+                    >
+                        <span className="flex items-center gap-2"><Users size={14} /> All Audience</span>
+                        <span className="text-[10px] text-gray-500">{countByType('audience')} (⇧5)</span>
                     </button>
                 </div>
             )}
