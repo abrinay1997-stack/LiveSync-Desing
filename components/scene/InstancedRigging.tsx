@@ -83,7 +83,9 @@ const InstancedGroup: React.FC<InstancedGroupProps> = ({ modelKey, objects }) =>
 
         const obj = objects[instanceId];
         if (obj) {
-            selectObject(obj.id, e.shiftKey);
+            // Support both Shift+click and Ctrl/Cmd+click for multi-selection
+            const isMultiSelect = e.shiftKey || e.ctrlKey || e.metaKey;
+            selectObject(obj.id, isMultiSelect);
         }
     };
 
