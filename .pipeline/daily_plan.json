@@ -1,36 +1,51 @@
 {
   "date": "2026-03-03",
   "agent": "elena",
-  "status": "SUCCESS",
-  "files_to_create": [
+  "status": "IN_PROGRESS",
+  "objective": "Implementar core acoustico avanzada - Día 1 de 3 - Max 3 archivos",
+  "phase_focus": "Fase 4 -- Ac:stica Avanzada (Etapa 1)",
+  "relevant_files": [
     "src/acoustics/constants.ts",
     "src/acoustics/types.ts",
-    "src/acoustics/spl-analyzer.ts",
-    "src/acoustics/weighting-a.ts",
-    "src/acoustics/atmospheric-absorption.ts",
-    "src/acoustics/__tests__/spl-analyzer.test.ts",
-    "src/acoustics/__tests__/weighting-a.test.ts",
-    "src/acoustics/__tests__/atmospheric-absorption.test.ts",
-    "src/shared/ids.ts"
+    "src/acoustics/spl-analyzer.ts"
   ],
-  "files_to_modify": [
-    "tsconfig.json"
+  "planned_files": [
+    {
+      "file": "src/acoustics/constants.ts",
+      "priority": "PRIORITY_1",
+      "description": "Constantes acousticas base: REFERENCE_PRESSURE=20e-6 Pa, AIR_DENSITY=1.225 kg/m³, SPEED_OF_SOUND=343 m/s, IEC/ISO standards",
+      "dependencies": [],
+      "status": "PENDING"
+    },
+    {
+      "file": "src/acoustics/types.ts",
+      "priority": "PRIORITY_2",
+      "description": "Tipos TypeScript para módulo acoustico: OctaveBand, SPLResult, AcousticPoint",
+      "dependencies": ["src/acoustics/constants.ts"],
+      "status": "PENDING"
+    },
+    {
+      "file": "src/acoustics/spl-analyzer.ts",
+      "priority": "PRIORITY_3",
+      "description": "Motor de analisis SPL multi-banda con filtros IEC 61260",
+      "dependencies": ["src/acoustics/constants.ts", "src/acoustics/types.ts"],
+      "status": "PENDING"
+    }
   ],
-  "technical_plan": "PLAN TÑCNICO - FASE 4: ACÚSTICA AVANZADA. Basado en el trabajo de Oscar (Fase 4 - Acústica Avanzada), Elena debe implementar: 1) INFRAESTRUCTURA BASE - Crear estructura src/acoustics/, implementar constantes ISO/IEC según RULE-004; 2) MÓDULO CONSTANTES ACÚSTICAS - REFERENCE_PRESSURE=20e-6 Pa, AIR_DENSITY=1.225 kg/m³, SPEED_OF_SOUND=343 m/s, IEC_61672_CLASS1_FREQS, ponderación A; 3) MÓDULO ANÁLISIS SPL MULTI-BANDA - calculateSPL(), analyzeOctaveBands(), filtros IEC 61260; 4) MÓDULO PONDERACIÓN A - applyAWeighting(), calculateLAeq(), fórmula IEC 61672-1; 5) MÓDULO ABSORCIÓN ATMOSFÉRICA ISO 9613 - calculateAtmosphericAbsorption(), modelo ISO 9613-1; 6) CONSTANTES COMPARTIDAS - src/shared/ids.ts según RULE-002; 7) TESTS UNITARIOS - cobertura 80%+, verify RULE-003 y RULE-004.",
+  "next_steps": [
+    "Dǭa 2: weighting-a.ts + atmospheric-absorption.ts",
+    "Día 3: Tests + shared/ids.ts"
+  ],
+  "rules_applied": [
+    "RULE-001: Sin JSX en archivos .ts",
+    "RULE-002: Constantes exportadas desde ids.ts",
+    "RULE-003: Uso de Math standard",
+    "RULE-004: Constantes ISO/IEC centralizadas",
+    "LIMITE-001: Max 3 archivos/por día"
+  ],
   "acceptance_criteria": [
-    "Todos los archivos creados con extensión .ts (no .tsx, no contienen JSX) - cumple RULE-001",
-    "IDs exportados desde src/shared/ids.ts - cumple RULE-002",
-    "Uso de Math.PI, Math.SSRT2, etc. - cumple RULE-003",
-    "Constantes ISO 9613 e IEC 61672 en archivo centralizado - cumple RULE-004",
-    "Tests unitarios pasan con cobertura >= 80%",
-    "Análisis SPL multi-banda retorna niveles correctos para señal de prueba",
-    "Ponderación A produce valores dentro de tolerancia ±0.1 dB vs referencia IEC",
-    "Absorción atmosférica calcula atenuación correcta para condiciones estándar"
-  ],
-  "dependencies": [
-    "Oscar completó Fase 4 - Acústica Avanzada (daily_state.json)",
-    "Reglas RULE-001 a RULE-004 aplicables",
-    "Vitest configurado para testing"
-  ],
-  "completed_at": "10:23 UTC"
+    "Constantes correctas según estándares ISO/IEC",
+    "Tipos compilables sin errores",
+    "SPL analyzer retorna niveles correctos para seóal de prueba"
+  ]
 }
