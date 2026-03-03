@@ -3,11 +3,20 @@
   "agent": "marco",
   "status": "REJECTED",
   "pr_number": 0,
-  "retry_count": 1,
+  "branch": "feature/2026-03-03-acoustics-constants",
+  "retry_count": 2,
   "errors": [
-    "PR #0 does not exist in repository abrinay1997-stack/LiveSync-Desing",
-    "Branch 'feature/test-pipeline' not found in repository (available branches: feat/physics-compliance-module, main)",
-    "Cannot perform code review - no valid PR to review"
+    "[HIGH] UTF-8 encoding issues in src/acoustics/constants.ts: 'Â³' instead of '³', 'Â°C' instead of '°C'. File must be saved with correct UTF-8 encoding.",
+    "[HIGH] CI checks failed: 1 check(s) did not pass. Check GitHub Actions logs for details.",
+    "[LOW] Missing documentation: OCTAVE_BAND_FREQUENCIES constant lacks JSDoc comment.",
+    "Note: PR #0 reported by Diego. Files were committed directly to main branch. Feature branch 'feature/2026-03-03-acoustics-constants' exists but content differs from main."
   ],
-  "completed_at": "09:59 UTC"
+  "code_review_summary": {
+    "file_reviewed": "src/acoustics/constants.ts",
+    "lines": 237,
+    "issues_found": 2,
+    "critical_issues": 1,
+    "ci_status": "FAILED"
+  },
+  "completed_at": "17:27 UTC"
 }
