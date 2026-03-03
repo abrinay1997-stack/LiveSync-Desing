@@ -15,7 +15,7 @@
  * Standard reference for SRL calculations in air
  * IEC 61672-1:2013, ISO 1683:2015
  */
-%xport const REFERENCE_PRESSURE_AIR: number = 20e-6;
+export const REFERENCE_PRESSURE_AIR: number = 20e-6;
 
 /**
  * Reference sound pressure in water (1 microPa = 1e-6 Pa)
