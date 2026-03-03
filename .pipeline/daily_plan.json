@@ -1,0 +1,41 @@
+{
+  "date": "2026-03-03",
+  "agent": "elena",
+  "status": "SUCCESS",
+  "files_to_create": [
+    "components/acoustics/SPLMultiBandChart.tsx",
+    "components/acoustics/AWeightingDisplay.tsx",
+    "components/acoustics/AtmosphericAbsorptionPanel.tsx",
+    "components/acoustics/AcousticsAnalysisDashboard.tsx",
+    "hooks/useAcousticsAnalysis.ts",
+    "hooks/useSPLBands.ts",
+    "services/acousticsIntegrationService.ts",
+    "data/acousticsBandConstants.ts",
+    "utils/acousticsUIHelpers.ts",
+    "components/acoustics/__tests__/SPLMultiBandChart.test.tsx",
+    "components/acoustics/__tests__/AWeightingDisplay.test.tsx",
+    "hooks/__tests__/useAcousticsAnalysis.test.ts",
+    "services/__tests__/acousticsIntegrationService.test.ts"
+  ],
+  "files_to_modify": [
+    "types.ts",
+    "store.ts",
+    "store/index.ts",
+    "App.tsx",
+    "components/index.ts",
+    "hooks/index.ts",
+    "services/index.ts"
+  ],
+  "technical_plan": "## Plan TÃ©cnico de Elena â 2026-03-03 â Fase 4: IntegraciÃ³n UI AcÃºstica Avanzada\n\n### Contexto\nOscar ha completado la lÃ³gica de anÃ¡lisis multi-banda SPL, ponderaciÃ³n A (ISO) y absorciÃ³n atmosfÃ©rica (ISO 9613) en src/audio/ y src/acoustics/. El trabajo de Elena hoy consiste en integrar esa lÃ³gica en la capa de UI, hooks, servicios y tests, respetando estrictamente RULE-001, RULE-002 y RULE-003.\n\n---\n\n### 1. Constantes y Tipos Compartidos\n\n**data/acousticsBandConstants.ts**\nExportar constantes para IDs de bandas de octava (63 Hz, 125 Hz, 250 Hz, 500 Hz, 1k, 2k, 4k, 8k, 16k Hz), niveles de referencia A-weighting ISO y parÃ¡metros atmosfÃ©ricos. Nunca usar strings literales en componentes; todos los IDs deben importarse desde aquÃ­ (RULE-002).\n\n```ts\nexport const OCTAVE_BAND_IDS = {\n  HZ_63: 'band_63hz',\n  HZ_125: 'band_125hz',\n  // ...\n} as const;\n```\n\n**types.ts (modificar)**\nAÃ±adir interfaces: `SPLBandData`, `AWeightedResult`, `AtmosphericAbsorptionCoeff`, `AcousticsAnalysisState`. Garantizar que todos los tipos exportados sean consumibles por hooks y componentes sin duplicidad.\n\n---\n\n### 2. Store Central\n\n**store.ts / store/index.ts (modificar)**\nAÃ±adir slice o secciÃ³n `acousticsAnalysis` con campos:\n- `bandData: SPLBandData[]`\n- `aWeightedTotal: number | null`\n- `atmosphericCoeffs: AtmosphericAbsorptionCoeff[]`\n- `analysisStatus: 'idle' | 'running' | 'done' | 'error'`\n\nExportar action creators con nombres descriptivos. Nunca usar strings de acciÃ³n sin constante exportada.\n\n---\n\n### 3. Hooks\n\n**hooks/useAcousticsAnalysis.ts**\nHook principal que:\n- Se suscribe al store para obtener `acousticsAnalysis`\n- Expone `runAnalysis(params)` que llama a `acousticsIntegrationService`\n- Devuelve `{ bandData, aWeightedTotal, atmosphericCoeffs, status, runAnalysis }`\n- Maneja loading/error internamente\n\n**hooks/useSPLBands.ts**\nHook especializado para el chart multi-banda:\n- Recibe `rawBandData: SPLBandData[]`\n- Aplica transformaciÃ³n para escala logarÃ­tmica y normalizaciÃ³n visual\n- Devuelve datos listos para el componente de visualizaciÃ³n\n\n---\n\n### 4. Servicio de IntegraciÃ³n\n\n**services/acousticsIntegrationService.ts**\n- Importa y envuelve las funciones de Oscar desde src/acoustics/\n- Expone mÃ©todos: `analyzeMultiBand()`, `applyAWeighting()`, `computeAtmosphericAbsorption()`\n- Manejo de errores tipado, nunca throws silenciosos\n- Usa constantes de `data/acousticsBandConstants.ts` para IDs\n\n---\n\n### 5. Componentes de VisualizaciÃ³n (.tsx â RULE-001)\n\n**components/acoustics/SPLMultiBandChart.tsx**\n- Recibe `bands: SPLBandData[]` como prop\n- Renderiza grÃ¡fico de barras por banda de octava con niveles SPL\n- Superpone curva de ponderaciÃ³n A\n- Usa IDs de `acousticsBandConstants.ts` como keys (RULE-002)\n- Props tipadas con interfaces de types.ts\n\n**components/acoustics/AWeightingDisplay.tsx**\n- Muestra tabla/grid con valores de ponderaciÃ³n A por frecuencia\n- Destaca visualmente la contribuciÃ³n de cada banda al total ponderado\n- Accesible: aria-labels con constantes exportadas\n\n**components/acoustics/AtmosphericAbsorptionPanel.tsx**\n- Muestra coeficientes ISO 9613 en tiempo real\n- Permite al usuario ajustar temperatura, humedad y distancia (inputs controlados)\n- Dispara recÃ¡lculo vÃ­a hook\n\n**components/acoustics/AcousticsAnalysisDashboard.tsx**\n- Componente contenedor que integra los tres anteriores\n- Consume `useAcousticsAnalysis` y `useSPLBands`\n- Gestiona layout responsive\n- Punto de entrada principal para la feature de acÃºstica avanzada\n\n---\n\n### 6. IntegraciÃ³n en App\n\n**App.tsx (modificar)**\nAÃ±adir ruta o secciÃ³n para `AcousticsAnalysisDashboard`. Importar desde `components/index.ts`. Verificar que no haya strings de ruta sin constante exportada.\n\n**components/index.ts, hooks/index.ts, services/index.ts (modificar)**\nRe-exportar los nuevos mÃ³dulos para mantener imports limpios en toda la app.\n\n---\n\n### 7. Tests (RULE-001 + RULE-003)\n\n**components/acoustics/__tests__/SPLMultiBandChart.test.tsx**\n- Importar helper de compliance desde utils compartido\n- Verificar render con datos de bandas reales (valores con Math.log10, Math.PI donde aplique)\n- Test de snapshot y test de accesibilidad bÃ¡sico\n\n**components/acoustics/__tests__/AWeightingDisplay.test.tsx**\n- Verificar que los valores A-weighting mostrados coincidan con la norma ISO usando constantes Math (RULE-003)\n- Usar `toBeCloseTo` con precisiÃ³n adecuada\n\n**hooks/__tests__/useAcousticsAnalysis.test.ts**\n- Mock del servicio de integraciÃ³n\n- Verificar transiciones de estado: idle â running â done\n- Test de manejo de error\n\n**services/__tests__/acousticsIntegrationService.test.ts**\n- Tests unitarios de cada mÃ©todo pÃºblico\n- Verificar que los coeficientes ISO 9613 coincidan con valores de referencia usando Math constants (RULE-003)\n- Usar helpers de compliance compartidos\n\n---\n\n### 8. Utils Auxiliares\n\n**utils/acousticsUIHelpers.ts**\n- `formatSPLDecibels(value: number): string` â formato con unidad dB\n- `getBandColorScale(bandId: string): string` â color por banda para el chart\n- `complianceHelper(measured: number, reference: number, tolerance: number): boolean` â helper compartido para tests (RULE-003)\n\n---\n\n### Orden de EjecuciÃ³n Sugerido\n1. `data/acousticsBandConstants.ts` + actualizar `types.ts` (base para todo)\n2. `utils/acousticsUIHelpers.ts` (helpers de tests)\n3. `services/acousticsIntegrationService.ts` (puente con trabajo de Oscar)\n4. `store.ts` slice acÃºstico\n5. `hooks/useAcousticsAnalysis.ts` + `hooks/useSPLBands.ts`\n6. Componentes en orden: AWeightingDisplay â AtmosphericAbsorptionPanel â SPLMultiBandChart â AcousticsAnalysisDashboard\n7. Actualizar App.tsx e index files\n8. Tests en paralelo con cada mÃ³dulo\n\n---\n\n### Riesgos y Mitigaciones\n- **Riesgo**: Tipos de Oscar en src/acoustics/ pueden no coincidir con los de types.ts â **MitigaciÃ³n**: Revisar exports de Oscar antes de crear interfaces, usar tipos de adaptador en el servicio de integraciÃ³n.\n- **Riesgo**: Performance del chart con 9 bandas actualizÃ¡ndose en tiempo real â **MitigaciÃ³n**: Usar React.memo en SPLMultiBandChart y useMemo en useSPLBands.\n- **Riesgo**: Tests de fÃ­sica con precisiÃ³n insuficiente â **MitigaciÃ³n**: Aplicar RULE-003 estrictamente, usar Math.log10 y constantes de referencia ISO en assertions.",
+  "acceptance_criteria": [
+    "Los nuevos componentes JSX deben usar extensiÃ³n .tsx conforme a RULE-001",
+    "Todos los IDs compartidos entre componentes y hooks deben ser constantes exportadas, nunca strings literales (RULE-002)",
+    "Los tests de fÃ­sica/acÃºstica deben usar Math constants y helpers de compliance compartidos (RULE-003)",
+    "El componente SPLMultiBandChart debe renderizar correctamente las bandas de octava con ponderaciÃ³n A",
+    "El hook useAcousticsAnalysis debe consumir los servicios de Oscar sin errores de TypeScript",
+    "El panel AtmosphericAbsorptionPanel debe mostrar los coeficientes ISO 9613 en tiempo real",
+    "La integraciÃ³n con el store central debe reflejar el estado de anÃ¡lisis acÃºstico multi-banda",
+    "Todos los tests nuevos deben pasar con cobertura mÃ­nima del 80% en las rutas crÃ­ticas"
+  ],
+  "completed_at": "10:00 UTC"
+}
