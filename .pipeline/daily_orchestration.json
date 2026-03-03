@@ -1,0 +1,71 @@
+{
+  "date": "2026-03-03",
+  "conductor_version": "2.0",
+  "pipeline_sequence": [
+    {
+      "step": 1,
+      "agent": "oscar",
+      "agent_id": "019cac16-c975-7051-a6be-26714c6f1ba1",
+      "status": "SUCCESS",
+      "timestamp": "10:18 UTC"
+    },
+    {
+      "step": 2,
+      "agent": "elena",
+      "agent_id": "019cac16-c9d6-7dc0-88a3-d49aedfd598f",
+      "status": "IN_PROGRESS",
+      "timestamp": null
+    },
+    {
+      "step": 3,
+      "agent": "diego",
+      "agent_id": "019cac16-c9fc-7751-b816-d4e9514095cd",
+      "status": "SUCCESS",
+      "timestamp": "17:36 UTC",
+      "retry_count": 3,
+      "pr_number": 0
+    },
+    {
+      "step": 4,
+      "agent": "marco",
+      "agent_id": "019cac17-036e-7623-bfe8-7b32763046cd",
+      "status": "MAX_RETRIES_REACHED",
+      "timestamp": "17:38 UTC",
+      "retry_count": 3,
+      "pr_number": 0
+    },
+    {
+      "step": 5,
+      "agent": "lena",
+      "agent_id": "019cac53-d90e-7b52-8d07-198d49230dc6",
+      "status": "SUCCESS",
+      "timestamp": "17:41 UTC",
+      "errors_found": 4
+    },
+    {
+      "step": 6,
+      "agent": "valentina",
+      "agent_id": "019cac17-03b8-7350-be86-abd7498b72fa",
+      "status": "SUCCESS",
+      "timestamp": "17:41 UTC"
+    }
+  ],
+  "start_time": "10:18 UTC",
+  "end_time": "17:41 UTC",
+  "total_duration": "7h 23m",
+  "total_duration_minutes": 443,
+  "retry_count": 3,
+  "final_status": "BLOCKED",
+  "blocker": {
+    "agent": "marco",
+    "reason": "MAX_RETRIES_REACHED - Diego reached maximum retry count (3) without creating a valid PR",
+    "pr_number": 0
+  },
+  "notes": [
+    "Diego completed with SUCCESS status but PR #0 indicates no valid PR was created",
+    "Marco could not review due to missing PR - reached MAX_RETRIES_REACHED status",
+    "Lena identified the pattern and added RULE-005 for PR existence verification",
+    "Elena still IN_PROGRESS at time of checkpoint"
+  ],
+  "generated_at": "2026-03-03T19:28:17.204Z"
+}
