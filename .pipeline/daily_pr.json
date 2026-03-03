@@ -1,8 +1,7 @@
 {
-  "status": "CICD_FIXED",
+  "status": "TYPO_FIXED",
   "files_modified": [
-    ".github/workflows/deploy-pages.yml",
-    "package.json"
+    "src/acoustics/constants.ts"
   ],
   "date": "2026-03-03",
   "agent": "diego"
