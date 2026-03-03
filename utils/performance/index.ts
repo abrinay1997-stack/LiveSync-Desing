@@ -10,11 +10,16 @@
  * - PerformanceMonitor: Real-time performance tracking
  */
 
-export { transientStore, TransientTransform, useTransientTransform } from './transientStore';
-export { spatialIndex, SpatialQueryResult } from './spatialIndex';
-export { instanceManager, InstanceData, InstanceBatch } from './instanceManager';
-export { lodManager, LODLevel, DEFAULT_LOD_LEVELS, getGeometryForLOD } from './lodManager';
-export { performanceMonitor, PerformanceMetrics, createRenderTracker } from './performanceMonitor';
+export { transientStore, useTransientTransform } from './transientStore';
+export type { TransientTransform } from './transientStore';
+export { spatialIndex } from './spatialIndex';
+export type { SpatialQueryResult } from './spatialIndex';
+export { instanceManager } from './instanceManager';
+export type { InstanceData, InstanceBatch } from './instanceManager';
+export { lodManager, DEFAULT_LOD_LEVELS, getGeometryForLOD } from './lodManager';
+export type { LODLevel } from './lodManager';
+export { performanceMonitor, createRenderTracker } from './performanceMonitor';
+export type { PerformanceMetrics } from './performanceMonitor';
 
 // Re-export the performance context hook
 export { usePerformanceSystem, PerformanceProvider } from './usePerformanceSystem';
