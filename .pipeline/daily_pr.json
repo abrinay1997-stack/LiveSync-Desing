@@ -1,8 +1,12 @@
 {
-  "status": "TYPO_FIXED",
-  "files_modified": [
-    "src/acoustics/constants.ts"
+  "date": "2026-03-10",
+  "branch": "feature/2026-03-10-acoustics-core-types",
+  "pr_number": 27,
+  "pr_url": "https://github.com/abrinay1997-stack/LiveSync-Desing/pull/27",
+  "files_changed": [
+    "src/acoustics/constants.ts",
+    "src/acoustics/types.ts"
   ],
-  "date": "2026-03-03",
-  "agent": "diego"
+  "retry_count": 0,
+  "status": "OPEN"
 }
